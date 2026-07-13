@@ -66,12 +66,13 @@ flutter analyze
 flutter test
 ```
 
-Pokrycie (91 testów): reguły czasowe (północ/DST), walidacja kolizji,
+Pokrycie (105 testów): reguły czasowe (północ/DST), walidacja kolizji,
 agregacja raportów, reguła jednego timera + odtwarzanie po restarcie,
 zapomniany timer, oś dnia, podział/edycja sesji (w tym auto-przycięcie i
-konflikty), zakresy raportów, format/zaokrąglanie i serializacja CSV,
-round-trip i idempotencja backupu; widget-testy: start 1-tap, edycja sesji,
-grupowanie w raporcie.
+konflikty), tworzenie zadań „w locie", zakresy raportów, statystyki
+(Focus Score, przełączenia, czas niezmierzony), format/zaokrąglanie i
+serializacja CSV, round-trip i idempotencja backupu; widget-testy:
+start 1-tap, edycja sesji, grupowanie w raporcie, statystyki.
 
 ## Status wdrożenia
 
