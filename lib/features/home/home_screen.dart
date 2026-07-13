@@ -6,6 +6,7 @@ import '../../data/providers.dart';
 import '../../domain/entities/project.dart';
 import '../app_state/app_providers.dart';
 import '../history/history_screen.dart';
+import '../reports/reports_screen.dart';
 import 'widgets/active_timer_bar.dart';
 import 'widgets/entity_dialogs.dart';
 import 'widgets/project_tile.dart';
@@ -43,6 +44,15 @@ class HomeScreen extends ConsumerWidget {
           ),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.bar_chart),
+            tooltip: 'Raporty',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => ReportsScreen(workspaceId: selectedId),
+              ),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.history),
             tooltip: 'Historia',
