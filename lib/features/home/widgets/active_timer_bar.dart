@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/ticker.dart';
@@ -68,7 +71,10 @@ class ActiveTimerBar extends ConsumerWidget {
                   ),
                 ),
                 FilledButton.tonalIcon(
-                  onPressed: () => ref.read(timerServiceProvider).stop(),
+                  onPressed: () {
+                    unawaited(HapticFeedback.mediumImpact());
+                    ref.read(timerServiceProvider).stop();
+                  },
                   icon: const Icon(Icons.stop_rounded),
                   label: const Text('STOP'),
                 ),

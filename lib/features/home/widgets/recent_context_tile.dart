@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../domain/repositories/session_repository.dart';
@@ -70,6 +73,7 @@ class RecentContextTile extends ConsumerWidget {
   }
 
   Future<void> _start(BuildContext buildContext, WidgetRef ref) async {
+    unawaited(HapticFeedback.selectionClick());
     await ref.read(timerServiceProvider).start(context);
     if (buildContext.mounted) {
       ScaffoldMessenger.of(buildContext)

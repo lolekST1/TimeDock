@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../domain/entities/project.dart';
@@ -62,6 +65,7 @@ class ProjectTile extends ConsumerWidget {
   }
 
   Future<void> _start(BuildContext context, WidgetRef ref) async {
+    unawaited(HapticFeedback.selectionClick());
     await ref.read(timerServiceProvider).start(SessionContext(
           workspaceId: project.workspaceId,
           projectId: project.id,
