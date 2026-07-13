@@ -29,6 +29,15 @@ class _ProjectSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Watch the live project so toggles (e.g. favorite) reflect immediately in
+    // this sheet instead of only after returning to the home screen.
+    final liveProject = (ref
+                .watch(projectsProvider(project.workspaceId))
+                .valueOrNull ??
+            const [])
+        .where((p) => p.id == project.id)
+        .firstOrNull ??
+        project;
     final subProjects =
         ref.watch(subProjectsProvider(project.id)).valueOrNull ?? const [];
     final tasks =
@@ -44,8 +53,8 @@ class _ProjectSheet extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(0, 0, 0, 24),
           children: [
             ListTile(
-              leading: CircleAvatar(backgroundColor: Color(project.color)),
-              title: Text(project.name,
+              leading: CircleAvatar(backgroundColor: Color(liveProject.color)),
+              title: Text(liveProject.name,
                   style: Theme.of(context).textTheme.titleLarge),
               trailing: IconButton(
                 icon: const Icon(Icons.play_arrow_rounded),
@@ -60,7 +69,7 @@ class _ProjectSheet extends ConsumerWidget {
               ),
             ),
             const Divider(height: 1),
-            _ManageRow(project: project),
+            _ManageRow(project: liveProject),
             const Divider(height: 1),
             if (subProjects.isNotEmpty) ...[
               _SectionHeader(
@@ -179,10 +188,30 @@ class _SubProjectTile extends ConsumerWidget {
       children: [
         for (final task in tasks)
           _TaskTile(project: project, task: task),
-        if (tasks.isEmpty)
-          const ListTile(dense: true, title: Text('Brak zadań')),
+        ListTile(
+          dense: true,
+          leading: const Icon(Icons.add),
+          title: const Text('Dodaj zadanie'),
+          onTap: () => _addTaskToSubProject(context, ref),
+        ),
       ],
     );
+  }
+
+  Future<void> _addTaskToSubProject(
+      BuildContext context, WidgetRef ref) async {
+    final result = await promptForTask(context);
+    if (result == null) return;
+    final now = DateTime.now().toUtc();
+    await ref.read(taskRepositoryProvider).upsert(Task(
+          id: const Uuid().v4(),
+          projectId: project.id,
+          subProjectId: subProject.id,
+          name: result.name,
+          jiraId: result.jiraId,
+          createdAt: now,
+          updatedAt: now,
+        ));
   }
 }
 

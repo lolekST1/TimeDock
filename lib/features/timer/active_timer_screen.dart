@@ -9,6 +9,7 @@ import '../../domain/repositories/session_repository.dart';
 import '../../domain/services/forgotten_timer.dart';
 import '../app_state/app_providers.dart';
 import '../app_state/context_label.dart';
+import '../history/history_providers.dart';
 import 'context_picker.dart';
 
 /// The active-timer screen. The counter dominates; the context, comment and
@@ -23,12 +24,30 @@ class ActiveTimerScreen extends ConsumerStatefulWidget {
 
 class _ActiveTimerScreenState extends ConsumerState<ActiveTimerScreen> {
   final _commentController = TextEditingController();
+  final _taskController = TextEditingController();
+  final _jiraController = TextEditingController();
   String? _loadedForSessionId;
 
   @override
   void dispose() {
     _commentController.dispose();
+    _taskController.dispose();
+    _jiraController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadTaskFields(String? taskId) async {
+    if (taskId == null) {
+      _taskController.clear();
+      _jiraController.clear();
+      return;
+    }
+    final task = await ref.read(taskRepositoryProvider).getById(taskId);
+    if (!mounted || task == null) return;
+    setState(() {
+      _taskController.text = task.name;
+      _jiraController.text = task.jiraId ?? '';
+    });
   }
 
   Future<void> _saveComment(TimeSession session) async {
@@ -38,6 +57,26 @@ class _ActiveTimerScreenState extends ConsumerState<ActiveTimerScreen> {
     await ref.read(sessionRepositoryProvider).upsert(
           session.copyWith(comment: value, updatedAt: DateTime.now().toUtc()),
         );
+  }
+
+  /// Find-or-create the typed task/Jira and attach it to the running session
+  /// without restarting the clock. No-op when both fields are empty and there
+  /// was no task before.
+  Future<void> _saveTask(TimeSession session) async {
+    final taskId = await ref.read(taskQuickAddProvider).findOrCreate(
+          projectId: session.projectId,
+          subProjectId: session.subProjectId,
+          name: _taskController.text,
+          jiraId: _jiraController.text,
+        );
+    if (taskId == null && session.taskId == null) return;
+    if (taskId == session.taskId) return;
+    await ref.read(timerServiceProvider).switchContext(SessionContext(
+          workspaceId: session.workspaceId,
+          projectId: session.projectId,
+          subProjectId: session.subProjectId,
+          taskId: taskId,
+        ));
   }
 
   @override
@@ -54,10 +93,11 @@ class _ActiveTimerScreenState extends ConsumerState<ActiveTimerScreen> {
       return const Scaffold(body: SizedBox.shrink());
     }
 
-    // Load the comment into the field once per session.
+    // Load the comment and task fields into the form once per session.
     if (_loadedForSessionId != session.id) {
       _loadedForSessionId = session.id;
       _commentController.text = session.comment ?? '';
+      _loadTaskFields(session.taskId);
     }
 
     final label = ref
@@ -73,56 +113,93 @@ class _ActiveTimerScreenState extends ConsumerState<ActiveTimerScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Aktywny timer')),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 8),
-              Center(
-                child: TimerCounter(
-                  startUtc: session.startUtc,
-                  style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                        fontWeight: FontWeight.w300,
-                      ),
-                ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+                children: [
+                  Center(
+                    child: TimerCounter(
+                      startUtc: session.startUtc,
+                      style:
+                          Theme.of(context).textTheme.displayLarge?.copyWith(
+                                fontFeatures: const [
+                                  FontFeature.tabularFigures()
+                                ],
+                                fontWeight: FontWeight.w300,
+                              ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Card(
+                    child: ListTile(
+                      leading: label == null
+                          ? const Icon(Icons.folder_open)
+                          : CircleAvatar(
+                              radius: 10,
+                              backgroundColor: Color(label.color)),
+                      title: Text(label?.path ?? '…'),
+                      subtitle: const Text('Dotknij, aby zmienić projekt'),
+                      trailing: const Icon(Icons.edit_outlined),
+                      onTap: () => _changeContext(session),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _taskController,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: const InputDecoration(
+                      labelText: 'Zadanie',
+                      hintText: 'np. Landing Page (utworzy się automatycznie)',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.check_circle_outline),
+                    ),
+                    onEditingComplete: () {
+                      _saveTask(session);
+                      FocusScope.of(context).unfocus();
+                    },
+                    onTapOutside: (_) => _saveTask(session),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _jiraController,
+                    decoration: const InputDecoration(
+                      labelText: 'Jira ID',
+                      hintText: 'np. DAN-1234',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.tag),
+                    ),
+                    onEditingComplete: () {
+                      _saveTask(session);
+                      FocusScope.of(context).unfocus();
+                    },
+                    onTapOutside: (_) => _saveTask(session),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _commentController,
+                    minLines: 2,
+                    maxLines: 4,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: const InputDecoration(
+                      labelText: 'Komentarz',
+                      hintText: 'Co konkretnie robisz w tej sesji?',
+                      border: OutlineInputBorder(),
+                    ),
+                    onEditingComplete: () {
+                      _saveComment(session);
+                      FocusScope.of(context).unfocus();
+                    },
+                    onTapOutside: (_) => _saveComment(session),
+                  ),
+                ],
               ),
-              const SizedBox(height: 24),
-              Card(
-                child: ListTile(
-                  leading: label == null
-                      ? const Icon(Icons.folder_open)
-                      : CircleAvatar(
-                          radius: 10,
-                          backgroundColor: Color(label.color)),
-                  title: Text(label?.path ?? '…'),
-                  subtitle: label?.taskJiraId == null
-                      ? const Text('Dotknij, aby zmienić')
-                      : Text(label!.taskJiraId!),
-                  trailing: const Icon(Icons.edit_outlined),
-                  onTap: () => _changeContext(session),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _commentController,
-                minLines: 2,
-                maxLines: 4,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
-                  labelText: 'Komentarz',
-                  hintText: 'Co konkretnie robisz w tej sesji?',
-                  border: OutlineInputBorder(),
-                ),
-                onEditingComplete: () {
-                  _saveComment(session);
-                  FocusScope.of(context).unfocus();
-                },
-                onTapOutside: (_) => _saveComment(session),
-              ),
-              const Spacer(),
-              SizedBox(
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+              child: SizedBox(
                 height: 64,
                 child: FilledButton.icon(
                   style: FilledButton.styleFrom(
@@ -134,8 +211,8 @@ class _ActiveTimerScreenState extends ConsumerState<ActiveTimerScreen> {
                   label: const Text('STOP', style: TextStyle(fontSize: 20)),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -153,14 +230,21 @@ class _ActiveTimerScreenState extends ConsumerState<ActiveTimerScreen> {
     }
   }
 
-  Future<void> _stop(TimeSession session) async {
-    await _saveComment(session);
+  Future<void> _stop(TimeSession initial) async {
+    await _saveComment(initial);
+    await _saveTask(initial);
+    // Re-read after the comment/task writes so the trim below doesn't revert
+    // them.
+    final session = await ref.read(sessionRepositoryProvider).getActive();
+    if (session == null) {
+      if (mounted) Navigator.of(context).pop();
+      return;
+    }
     final now = DateTime.now().toUtc();
     const settings = ForgottenTimerSettings();
 
     if (ForgottenTimer.shouldSuggestTrimOnStop(session, now, settings)) {
-      final trimTo =
-          await _askTrim(session, now, settings);
+      final trimTo = await _askTrim(session, now, settings);
       if (trimTo == null) return; // cancelled
       if (trimTo != now) {
         // Save with the user-chosen (trimmed) end.

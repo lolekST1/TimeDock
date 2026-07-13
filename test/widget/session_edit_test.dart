@@ -52,9 +52,12 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    // Bump the end by 15 minutes and save.
-    await tester.tap(find.byTooltip('+15 min'));
+    // Bump the end by 15 minutes and save (scroll them into view first, since
+    // the editor is a scrollable form).
+    await tester.ensureVisible(find.text('+15 min'));
+    await tester.tap(find.text('+15 min'));
     await tester.pump();
+    await tester.ensureVisible(find.text('Zapisz'));
     await tester.tap(find.text('Zapisz'));
     await tester.pumpAndSettle();
 

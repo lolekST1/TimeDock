@@ -2,10 +2,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/providers.dart';
 import '../../data/session_editor.dart';
+import '../../data/task_quick_add.dart';
 import '../../domain/services/day_timeline.dart';
 
 final sessionEditorProvider = Provider<SessionEditor>(
     (ref) => SessionEditor(ref.watch(sessionRepositoryProvider)));
+
+final taskQuickAddProvider = Provider<TaskQuickAdd>(
+    (ref) => TaskQuickAdd(ref.watch(taskRepositoryProvider)));
 
 /// Identifies the timeline to show: a workspace and a local day
 /// (`DateTime.utc(y, m, d)`).

@@ -39,6 +39,8 @@ class _SessionEditorScreenState extends ConsumerState<SessionEditorScreen> {
   late DateTime _endLocal;
   late SessionContext _context;
   final _commentController = TextEditingController();
+  final _taskController = TextEditingController();
+  final _jiraController = TextEditingController();
 
   bool get _isNew => widget.existing == null;
 
@@ -47,8 +49,13 @@ class _SessionEditorScreenState extends ConsumerState<SessionEditorScreen> {
     super.initState();
     final existing = widget.existing;
     if (existing != null) {
-      _startLocal = existing.startLocal;
-      _endLocal = existing.endLocal ?? existing.startLocal.add(const Duration(hours: 1));
+      // Use genuine local DateTimes (isUtc == false) so they compare and
+      // convert consistently with the values the date/time pickers produce.
+      // The startLocal/endLocal getters carry a UTC flag and must not be
+      // mixed with picker output.
+      _startLocal = existing.startUtc.toLocal();
+      _endLocal = existing.endUtc?.toLocal() ??
+          existing.startUtc.toLocal().add(const Duration(hours: 1));
       _context = SessionContext(
         workspaceId: existing.workspaceId,
         projectId: existing.projectId,
@@ -56,18 +63,30 @@ class _SessionEditorScreenState extends ConsumerState<SessionEditorScreen> {
         taskId: existing.taskId,
       );
       _commentController.text = existing.comment ?? '';
+      if (existing.taskId != null) _loadTaskFields(existing.taskId!);
     } else {
-      _startLocal = (widget.initialStartUtc ?? DateTime.now().toUtc())
-          .toLocal();
+      _startLocal = (widget.initialStartUtc ?? DateTime.now().toUtc()).toLocal();
       _endLocal = (widget.initialEndUtc ?? DateTime.now().toUtc()).toLocal();
       _context = widget.initialContext ??
           SessionContext(workspaceId: widget.workspaceId, projectId: '');
+      if (_context.taskId != null) _loadTaskFields(_context.taskId!);
     }
+  }
+
+  Future<void> _loadTaskFields(String taskId) async {
+    final task = await ref.read(taskRepositoryProvider).getById(taskId);
+    if (!mounted || task == null) return;
+    setState(() {
+      _taskController.text = task.name;
+      _jiraController.text = task.jiraId ?? '';
+    });
   }
 
   @override
   void dispose() {
     _commentController.dispose();
+    _taskController.dispose();
+    _jiraController.dispose();
     super.dispose();
   }
 
@@ -100,7 +119,8 @@ class _SessionEditorScreenState extends ConsumerState<SessionEditorScreen> {
                   ? const Icon(Icons.folder_open)
                   : CircleAvatar(
                       radius: 10, backgroundColor: Color(label.color)),
-              title: Text(label?.path ?? 'Wybierz projekt'),
+              title: Text(label?.path ?? 'Wybierz projekt / podprojekt'),
+              subtitle: const Text('Dotknij, aby wybrać'),
               trailing: const Icon(Icons.edit_outlined),
               onTap: _pickContext,
             ),
@@ -119,8 +139,8 @@ class _SessionEditorScreenState extends ConsumerState<SessionEditorScreen> {
           _TimeRow(
             label: 'Koniec',
             value: _endLocal,
-            onChanged: (v) => setState(() => _endLocal = v),
             quickAdjust: true,
+            onChanged: (v) => setState(() => _endLocal = v),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
@@ -129,6 +149,28 @@ class _SessionEditorScreenState extends ConsumerState<SessionEditorScreen> {
               style: Theme.of(context).textTheme.titleMedium,
             ),
           ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _taskController,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: const InputDecoration(
+              labelText: 'Zadanie',
+              hintText: 'np. Landing Page (utworzy się automatycznie)',
+              border: OutlineInputBorder(),
+              prefixIcon: Icon(Icons.check_circle_outline),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _jiraController,
+            decoration: const InputDecoration(
+              labelText: 'Jira ID',
+              hintText: 'np. DAN-1234',
+              border: OutlineInputBorder(),
+              prefixIcon: Icon(Icons.tag),
+            ),
+          ),
+          const SizedBox(height: 8),
           TextField(
             controller: _commentController,
             minLines: 2,
@@ -166,7 +208,15 @@ class _SessionEditorScreenState extends ConsumerState<SessionEditorScreen> {
       currentProjectId:
           _context.projectId.isEmpty ? null : _context.projectId,
     );
-    if (picked != null) setState(() => _context = picked);
+    if (picked == null) return;
+    setState(() => _context = picked);
+    // Sync the task/Jira fields with the picked context.
+    if (picked.taskId != null) {
+      await _loadTaskFields(picked.taskId!);
+    } else {
+      _taskController.clear();
+      _jiraController.clear();
+    }
   }
 
   Future<void> _save() async {
@@ -178,27 +228,39 @@ class _SessionEditorScreenState extends ConsumerState<SessionEditorScreen> {
       _snack('Koniec musi być po początku.');
       return;
     }
+
+    // Resolve the ad-hoc task/Jira: find-or-create under the current context.
+    final taskId = await ref.read(taskQuickAddProvider).findOrCreate(
+          projectId: _context.projectId,
+          subProjectId: _context.subProjectId,
+          name: _taskController.text,
+          jiraId: _jiraController.text,
+        );
+
     final editor = ref.read(sessionEditorProvider);
-    final comment =
-        _commentController.text.trim().isEmpty ? null : _commentController.text.trim();
+    final comment = _commentController.text.trim().isEmpty
+        ? null
+        : _commentController.text.trim();
     final now = DateTime.now().toUtc();
 
     final TimeSession candidate;
     if (_isNew) {
-      candidate = editor.buildManual(
-        context: _context,
-        startUtc: _startLocal.toUtc(),
-        endUtc: _endLocal.toUtc(),
-        startOffsetMinutes: _startLocal.timeZoneOffset.inMinutes,
-        endOffsetMinutes: _endLocal.timeZoneOffset.inMinutes,
-        comment: comment,
-        nowUtc: now,
-      );
+      candidate = editor
+          .buildManual(
+            context: _context,
+            startUtc: _startLocal.toUtc(),
+            endUtc: _endLocal.toUtc(),
+            startOffsetMinutes: _startLocal.timeZoneOffset.inMinutes,
+            endOffsetMinutes: _endLocal.timeZoneOffset.inMinutes,
+            comment: comment,
+            nowUtc: now,
+          )
+          .copyWith(taskId: taskId);
     } else {
       candidate = widget.existing!.copyWith(
         projectId: _context.projectId,
         subProjectId: _context.subProjectId,
-        taskId: _context.taskId,
+        taskId: taskId,
         startUtc: _startLocal.toUtc(),
         endUtc: _endLocal.toUtc(),
         startOffsetMinutes: _startLocal.timeZoneOffset.inMinutes,
@@ -219,8 +281,6 @@ class _SessionEditorScreenState extends ConsumerState<SessionEditorScreen> {
       case EditConflict():
         final proceed = await _confirmConflict();
         if (proceed == true) {
-          // Apply candidate over the unresolvable neighbour by forcing save of
-          // just the candidate (kept simple: overwrite, user chose to proceed).
           await ref.read(sessionRepositoryProvider).upsert(candidate);
           if (mounted) Navigator.of(context).pop();
         }
@@ -252,17 +312,18 @@ class _SessionEditorScreenState extends ConsumerState<SessionEditorScreen> {
 
   Future<void> _split() async {
     final existing = widget.existing!;
-    final end = existing.endLocal ?? _endLocal;
-    final mid = existing.startLocal.add(
-        end.difference(existing.startLocal) ~/ 2);
+    if (existing.endUtc == null) return;
+    final startLocal = existing.startUtc.toLocal();
+    final endLocal = existing.endUtc!.toLocal();
+    final mid = startLocal.add(endLocal.difference(startLocal) ~/ 2);
     final picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(mid),
       helpText: 'Punkt podziału',
     );
     if (picked == null) return;
-    final splitLocal = DateTime(existing.startLocal.year,
-        existing.startLocal.month, existing.startLocal.day, picked.hour, picked.minute);
+    final splitLocal = DateTime(startLocal.year, startLocal.month,
+        startLocal.day, picked.hour, picked.minute);
     final splitUtc = splitLocal.toUtc();
     if (!splitUtc.isAfter(existing.startUtc) ||
         !splitUtc.isBefore(existing.endUtc!)) {
@@ -318,35 +379,66 @@ class _TimeRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 84, child: Text(label)),
-          OutlinedButton(
-            onPressed: () => _pickDate(context),
-            child: Text(
-                '${value.year}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}'),
+          // Label + date + time. Wrap prevents overflow on narrow screens.
+          Row(
+            children: [
+              SizedBox(
+                width: 72,
+                child: Text(label,
+                    style: Theme.of(context).textTheme.bodyLarge),
+              ),
+              Expanded(
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  alignment: WrapAlignment.end,
+                  children: [
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.calendar_today, size: 16),
+                      onPressed: () => _pickDate(context),
+                      label: Text(
+                          '${value.year}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}'),
+                    ),
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.schedule, size: 16),
+                      onPressed: () => _pickTime(context),
+                      label: Text(formatTimeOfDay(value)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          OutlinedButton(
-            onPressed: () => _pickTime(context),
-            child: Text(formatTimeOfDay(value)),
-          ),
-          if (quickAdjust) ...[
-            const Spacer(),
-            IconButton(
-              tooltip: '-15 min',
-              icon: const Icon(Icons.remove),
-              onPressed: () =>
-                  onChanged(value.subtract(const Duration(minutes: 15))),
+          if (quickAdjust)
+            Padding(
+              padding: const EdgeInsets.only(top: 6, left: 72),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  _AdjustChip(
+                      label: '−15 min',
+                      onTap: () => onChanged(
+                          value.subtract(const Duration(minutes: 15)))),
+                  _AdjustChip(
+                      label: '+15 min',
+                      onTap: () =>
+                          onChanged(value.add(const Duration(minutes: 15)))),
+                  _AdjustChip(
+                      label: '+30 min',
+                      onTap: () =>
+                          onChanged(value.add(const Duration(minutes: 30)))),
+                  _AdjustChip(
+                      label: '+1 h',
+                      onTap: () =>
+                          onChanged(value.add(const Duration(hours: 1)))),
+                ],
+              ),
             ),
-            IconButton(
-              tooltip: '+15 min',
-              icon: const Icon(Icons.add),
-              onPressed: () =>
-                  onChanged(value.add(const Duration(minutes: 15))),
-            ),
-          ],
         ],
       ),
     );
@@ -374,5 +466,21 @@ class _TimeRow extends StatelessWidget {
       onChanged(DateTime(
           value.year, value.month, value.day, picked.hour, picked.minute));
     }
+  }
+}
+
+class _AdjustChip extends StatelessWidget {
+  const _AdjustChip({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ActionChip(
+      label: Text(label),
+      onPressed: onTap,
+      visualDensity: VisualDensity.compact,
+    );
   }
 }
