@@ -8,6 +8,7 @@ import '../../domain/entities/task.dart';
 import '../../domain/entities/time_session.dart';
 import '../../domain/entities/workspace.dart';
 import '../../domain/repositories/session_repository.dart';
+import '../../domain/services/timer_foreground_service.dart';
 import '../../domain/services/timer_service.dart';
 
 /// Bound in [main] once SharedPreferences has loaded.
@@ -16,6 +17,12 @@ final sharedPreferencesProvider = Provider<SharedPreferences>(
 
 final timerServiceProvider = Provider<TimerService>(
     (ref) => TimerService(ref.watch(sessionRepositoryProvider)));
+
+/// The always-on timer notification / foreground service. Defaults to a no-op;
+/// the Android implementation is overridden in [main] on that platform. The
+/// timer works regardless of whether the service is alive.
+final timerForegroundServiceProvider = Provider<TimerForegroundService>(
+    (ref) => const NoopTimerForegroundService());
 
 /// The single running session across the whole app, or null. Sourced from the
 /// database so it is correct after a restart.
