@@ -1,0 +1,222 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/time_format.dart';
+import '../../domain/repositories/session_repository.dart';
+import '../../domain/services/day_timeline.dart';
+import '../app_state/context_label.dart';
+import 'history_providers.dart';
+import 'session_editor_screen.dart';
+
+class HistoryScreen extends ConsumerStatefulWidget {
+  const HistoryScreen({super.key, required this.workspaceId});
+
+  final String workspaceId;
+
+  @override
+  ConsumerState<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends ConsumerState<HistoryScreen> {
+  late DateTime _day; // local-day key: DateTime.utc(y, m, d)
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _day = DateTime.utc(now.year, now.month, now.day);
+  }
+
+  void _shiftDay(int deltaDays) {
+    setState(() => _day = _day.add(Duration(days: deltaDays)));
+  }
+
+  bool get _isToday {
+    final now = DateTime.now();
+    return _day == DateTime.utc(now.year, now.month, now.day);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final entries = ref
+            .watch(dayTimelineProvider(DayKey(widget.workspaceId, _day)))
+            .valueOrNull ??
+        const [];
+    final tracked = DayTimeline.trackedTotal(entries);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Historia'),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(52),
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.chevron_left),
+                  onPressed: () => _shiftDay(-1),
+                ),
+                TextButton(
+                  onPressed: _isToday ? null : () => _shiftDay(_daysToToday()),
+                  child: Text(
+                    _isToday
+                        ? 'Dziś'
+                        : '${_day.year}-${_day.month.toString().padLeft(2, '0')}-${_day.day.toString().padLeft(2, '0')}',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right),
+                  onPressed: _isToday ? null : () => _shiftDay(1),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _addManual,
+        icon: const Icon(Icons.add),
+        label: const Text('Dodaj sesję'),
+      ),
+      body: GestureDetector(
+        onHorizontalDragEnd: (details) {
+          final v = details.primaryVelocity ?? 0;
+          if (v > 200) {
+            _shiftDay(-1); // swipe right → previous day
+          } else if (v < -200 && !_isToday) {
+            _shiftDay(1);
+          }
+        },
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Text('Zmierzono: ${formatDurationShort(tracked)}',
+                  style: Theme.of(context).textTheme.titleMedium),
+            ),
+            Expanded(
+              child: entries.isEmpty
+                  ? const Center(child: Text('Brak sesji tego dnia'))
+                  : ListView.builder(
+                      padding: const EdgeInsets.only(bottom: 96),
+                      itemCount: entries.length,
+                      itemBuilder: (context, i) =>
+                          _EntryTile(entry: entries[i], workspaceId: widget.workspaceId),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  int _daysToToday() {
+    final now = DateTime.now();
+    final today = DateTime.utc(now.year, now.month, now.day);
+    return today.difference(_day).inDays;
+  }
+
+  Future<void> _addManual() async {
+    // Default range: from the end of the last session today to now.
+    final entries = ref
+            .read(dayTimelineProvider(DayKey(widget.workspaceId, _day)))
+            .valueOrNull ??
+        const [];
+    final lastBlock = entries.whereType<SessionBlock>().fold<DateTime?>(
+        null,
+        (latest, b) =>
+            latest == null || b.endLocal.isAfter(latest) ? b.endLocal : latest);
+    final now = DateTime.now();
+    final defaultStart = lastBlock?.toUtc() ??
+        DateTime(now.year, now.month, now.day, now.hour)
+            .subtract(const Duration(hours: 1))
+            .toUtc();
+
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => SessionEditorScreen(
+        workspaceId: widget.workspaceId,
+        initialStartUtc: defaultStart,
+        initialEndUtc: DateTime.now().toUtc(),
+      ),
+    ));
+  }
+}
+
+class _EntryTile extends ConsumerWidget {
+  const _EntryTile({required this.entry, required this.workspaceId});
+
+  final TimelineEntry entry;
+  final String workspaceId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final timeRange =
+        '${formatTimeOfDay(entry.startLocal)}–${formatTimeOfDay(entry.endLocal)}';
+
+    if (entry is GapBlock) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(72, 4, 16, 4),
+        child: Row(
+          children: [
+            Icon(Icons.more_vert,
+                size: 16, color: Theme.of(context).colorScheme.outline),
+            const SizedBox(width: 8),
+            Text(
+              'Nierejestrowane · ${formatDurationShort(entry.duration)}',
+              style: TextStyle(color: Theme.of(context).colorScheme.outline),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final block = entry as SessionBlock;
+    final session = block.session;
+    final label = ref
+        .watch(contextLabelProvider(SessionContext(
+          workspaceId: session.workspaceId,
+          projectId: session.projectId,
+          subProjectId: session.subProjectId,
+          taskId: session.taskId,
+        )))
+        .valueOrNull;
+
+    return ListTile(
+      leading: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(
+              color: label == null ? Colors.grey : Color(label.color),
+              shape: BoxShape.circle,
+            ),
+          ),
+        ],
+      ),
+      title: Text(label?.path ?? '…'),
+      subtitle: Text(
+        '$timeRange · ${formatDurationShort(block.duration)}'
+        '${session.isRunning ? ' · w toku' : ''}'
+        '${session.comment != null ? '\n${session.comment}' : ''}',
+      ),
+      isThreeLine: session.comment != null,
+      trailing: session.wasEdited || session.isManuallyAdded
+          ? Icon(Icons.edit_note,
+              size: 18, color: Theme.of(context).colorScheme.outline)
+          : null,
+      onTap: session.isRunning
+          ? null
+          : () => Navigator.of(context).push(MaterialPageRoute<void>(
+                builder: (_) => SessionEditorScreen(
+                  workspaceId: workspaceId,
+                  existing: session,
+                ),
+              )),
+    );
+  }
+}
