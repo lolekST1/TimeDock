@@ -6,6 +6,7 @@ import '../../domain/entities/project.dart';
 import '../../domain/services/report_range.dart';
 import '../../domain/services/session_aggregator.dart';
 import '../app_state/app_providers.dart';
+import '../export/export_screen.dart';
 import 'report_providers.dart';
 
 class ReportsScreen extends ConsumerWidget {
@@ -23,7 +24,20 @@ class ReportsScreen extends ConsumerWidget {
     final projectsById = {for (final p in projects) p.id: p};
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Raporty')),
+      appBar: AppBar(
+        title: const Text('Raporty'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.ios_share),
+            tooltip: 'Eksport i kopie',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => ExportScreen(workspaceId: workspaceId),
+              ),
+            ),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           Padding(
