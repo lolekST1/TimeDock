@@ -8,6 +8,7 @@ class Workspace {
     required this.colorSeed,
     this.sortOrder = 0,
     this.isArchived = false,
+    this.weeklyGoalMinutes,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -19,6 +20,10 @@ class Workspace {
   final int colorSeed;
   final int sortOrder;
   final bool isArchived;
+
+  /// Optional weekly target in minutes; null means no goal set.
+  final int? weeklyGoalMinutes;
+
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -27,6 +32,7 @@ class Workspace {
     int? colorSeed,
     int? sortOrder,
     bool? isArchived,
+    Object? weeklyGoalMinutes = _sentinel,
     DateTime? updatedAt,
   }) {
     return Workspace(
@@ -35,6 +41,9 @@ class Workspace {
       colorSeed: colorSeed ?? this.colorSeed,
       sortOrder: sortOrder ?? this.sortOrder,
       isArchived: isArchived ?? this.isArchived,
+      weeklyGoalMinutes: weeklyGoalMinutes == _sentinel
+          ? this.weeklyGoalMinutes
+          : weeklyGoalMinutes as int?,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -46,3 +55,5 @@ class Workspace {
   @override
   int get hashCode => id.hashCode;
 }
+
+const Object _sentinel = Object();

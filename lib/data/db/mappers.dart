@@ -17,6 +17,7 @@ extension WorkspaceRowMapper on WorkspaceRow {
         colorSeed: colorSeed,
         sortOrder: sortOrder,
         isArchived: isArchived,
+        weeklyGoalMinutes: weeklyGoalMinutes,
         createdAt: _utc(createdAtMillis),
         updatedAt: _utc(updatedAtMillis),
       );
@@ -29,6 +30,7 @@ extension WorkspaceEntityMapper on Workspace {
         colorSeed: Value(colorSeed),
         sortOrder: Value(sortOrder),
         isArchived: Value(isArchived),
+        weeklyGoalMinutes: Value(weeklyGoalMinutes),
         createdAtMillis: Value(createdAt.millisecondsSinceEpoch),
         updatedAtMillis: Value(updatedAt.millisecondsSinceEpoch),
       );

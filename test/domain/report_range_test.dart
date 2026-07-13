@@ -59,4 +59,25 @@ void main() {
           DateTime.utc(2027, 1, 5));
     });
   });
+
+  group('custom range', () {
+    test('rangeFor throws for the custom period', () {
+      expect(() => ReportRangeCalculator.rangeFor(ReportPeriod.custom, friday),
+          throwsArgumentError);
+    });
+
+    test('shiftCustom pages by the range length', () {
+      final range = ReportRange(
+        firstDay: DateTime.utc(2026, 7, 6),
+        lastDay: DateTime.utc(2026, 7, 8), // 3 days
+      );
+      final next = ReportRangeCalculator.shiftCustom(range, 1);
+      expect(next.firstDay, DateTime.utc(2026, 7, 9));
+      expect(next.lastDay, DateTime.utc(2026, 7, 11));
+
+      final prev = ReportRangeCalculator.shiftCustom(range, -1);
+      expect(prev.firstDay, DateTime.utc(2026, 7, 3));
+      expect(prev.lastDay, DateTime.utc(2026, 7, 5));
+    });
+  });
 }

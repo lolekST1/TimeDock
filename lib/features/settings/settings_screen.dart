@@ -74,12 +74,17 @@ class SettingsScreen extends ConsumerWidget {
               leading: CircleAvatar(
                   radius: 10, backgroundColor: Color(w.colorSeed)),
               title: Text(w.name),
+              subtitle: w.weeklyGoalMinutes != null
+                  ? Text('Cel: ${w.weeklyGoalMinutes! ~/ 60} h / tydzień')
+                  : null,
               trailing: PopupMenuButton<String>(
                 onSelected: (action) =>
                     _onWorkspaceAction(context, ref, w, action, workspaces.length),
                 itemBuilder: (context) => [
                   const PopupMenuItem(value: 'rename', child: Text('Zmień nazwę')),
                   const PopupMenuItem(value: 'color', child: Text('Zmień kolor')),
+                  const PopupMenuItem(
+                      value: 'goal', child: Text('Cel tygodniowy')),
                   if (workspaces.length > 1)
                     const PopupMenuItem(
                         value: 'archive', child: Text('Archiwizuj')),
@@ -133,6 +138,15 @@ class SettingsScreen extends ConsumerWidget {
         if (color != null) {
           await repo.upsert(workspace.copyWith(colorSeed: color, updatedAt: now));
         }
+      case 'goal':
+        final hours = await _pickGoalHours(
+            context, (workspace.weeklyGoalMinutes ?? 0) ~/ 60);
+        if (hours != null) {
+          await repo.upsert(workspace.copyWith(
+            weeklyGoalMinutes: hours == 0 ? null : hours * 60,
+            updatedAt: now,
+          ));
+        }
       case 'archive':
         // Never archive the last active workspace; move selection away first.
         if (activeCount <= 1) return;
@@ -149,6 +163,24 @@ class SettingsScreen extends ConsumerWidget {
         }
         await repo.upsert(workspace.copyWith(isArchived: true, updatedAt: now));
     }
+  }
+
+  Future<int?> _pickGoalHours(BuildContext context, int current) {
+    return showDialog<int>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('Cel tygodniowy'),
+        children: [
+          for (final h in const [0, 5, 10, 20, 30, 40])
+            RadioListTile<int>(
+              value: h,
+              groupValue: current,
+              title: Text(h == 0 ? 'Brak celu' : '$h h / tydzień'),
+              onChanged: (v) => Navigator.of(context).pop(v),
+            ),
+        ],
+      ),
+    );
   }
 
   Future<int?> _pickColor(BuildContext context, int current) {

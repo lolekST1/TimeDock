@@ -2,55 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/time_format.dart';
-import '../../domain/services/report_range.dart';
 import '../../domain/services/statistics.dart';
-import '../reports/report_providers.dart';
+import '../reports/period_selector.dart';
 import 'stats_providers.dart';
 
 /// At-a-glance statistics for the selected period. Shares the period control
-/// with Reports so switching day/week/month updates both.
+/// with Reports so switching day/week/month/custom updates both.
 class StatsScreen extends ConsumerWidget {
   const StatsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final period = ref.watch(reportPeriodProvider);
-    final range = ref.watch(reportRangeProvider);
     final stats = ref.watch(statsProvider).valueOrNull ?? SessionStats.empty;
+    final goal = ref.watch(weeklyGoalProvider).valueOrNull;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Statystyki')),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: SegmentedButton<ReportPeriod>(
-              segments: const [
-                ButtonSegment(value: ReportPeriod.day, label: Text('Dzień')),
-                ButtonSegment(value: ReportPeriod.week, label: Text('Tydzień')),
-                ButtonSegment(value: ReportPeriod.month, label: Text('Miesiąc')),
-              ],
-              selected: {period},
-              onSelectionChanged: (s) =>
-                  ref.read(reportPeriodProvider.notifier).state = s.first,
-            ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.chevron_left),
-                onPressed: () => _shift(ref, period, -1),
-              ),
-              Text(_rangeLabel(period, range),
-                  style: Theme.of(context).textTheme.titleMedium),
-              IconButton(
-                icon: const Icon(Icons.chevron_right),
-                onPressed: () => _shift(ref, period, 1),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
+          const PeriodSelector(),
+          if (goal != null) _WeeklyGoalCard(goal: goal),
+          const SizedBox(height: 4),
           Expanded(
             child: stats.sessionCount == 0
                 ? const Center(child: Text('Brak danych w tym okresie'))
@@ -99,28 +71,60 @@ class StatsScreen extends ConsumerWidget {
       ),
     );
   }
+}
 
-  void _shift(WidgetRef ref, ReportPeriod period, int direction) {
-    final anchor = ref.read(reportAnchorProvider);
-    ref.read(reportAnchorProvider.notifier).state =
-        ReportRangeCalculator.shift(period, anchor, direction);
-  }
+class _WeeklyGoalCard extends StatelessWidget {
+  const _WeeklyGoalCard({required this.goal});
 
-  String _rangeLabel(ReportPeriod period, ReportRange range) {
-    String d(DateTime x) =>
-        '${x.day.toString().padLeft(2, '0')}.${x.month.toString().padLeft(2, '0')}';
-    switch (period) {
-      case ReportPeriod.day:
-        return '${d(range.firstDay)}.${range.firstDay.year}';
-      case ReportPeriod.week:
-        return '${d(range.firstDay)} – ${d(range.lastDay)}';
-      case ReportPeriod.month:
-        const months = [
-          'sty', 'lut', 'mar', 'kwi', 'maj', 'cze',
-          'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'
-        ];
-        return '${months[range.firstDay.month - 1]} ${range.firstDay.year}';
-    }
+  final WeeklyGoalProgress goal;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final percent = (goal.fraction * 100).round();
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  goal.reached ? Icons.emoji_events : Icons.flag_outlined,
+                  color: goal.reached ? scheme.primary : scheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 8),
+                Text('Cel tygodniowy',
+                    style: Theme.of(context).textTheme.titleMedium),
+                const Spacer(),
+                Text('$percent%',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w700)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: goal.fraction,
+                minHeight: 10,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              goal.reached
+                  ? 'Osiągnięto ${formatDurationShort(goal.tracked)} z ${formatDurationShort(goal.goal)} 🎉'
+                  : '${formatDurationShort(goal.tracked)} z ${formatDurationShort(goal.goal)} · zostało ${formatDurationShort(goal.remaining)}',
+              style: TextStyle(color: scheme.onSurfaceVariant),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/time_format.dart';
 import '../../domain/entities/project.dart';
-import '../../domain/services/report_range.dart';
 import '../../domain/services/session_aggregator.dart';
 import '../app_state/app_providers.dart';
 import '../export/export_screen.dart';
+import 'period_selector.dart';
 import 'report_providers.dart';
 
 class ReportsScreen extends ConsumerWidget {
@@ -16,8 +16,6 @@ class ReportsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final period = ref.watch(reportPeriodProvider);
-    final range = ref.watch(reportRangeProvider);
     final tree = ref.watch(reportTreeProvider).valueOrNull ?? ReportTree.empty;
     final projects =
         ref.watch(projectsProvider(workspaceId)).valueOrNull ?? const [];
@@ -40,34 +38,7 @@ class ReportsScreen extends ConsumerWidget {
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: SegmentedButton<ReportPeriod>(
-              segments: const [
-                ButtonSegment(value: ReportPeriod.day, label: Text('Dzień')),
-                ButtonSegment(value: ReportPeriod.week, label: Text('Tydzień')),
-                ButtonSegment(value: ReportPeriod.month, label: Text('Miesiąc')),
-              ],
-              selected: {period},
-              onSelectionChanged: (s) =>
-                  ref.read(reportPeriodProvider.notifier).state = s.first,
-            ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.chevron_left),
-                onPressed: () => _shift(ref, period, -1),
-              ),
-              Text(_rangeLabel(period, range),
-                  style: Theme.of(context).textTheme.titleMedium),
-              IconButton(
-                icon: const Icon(Icons.chevron_right),
-                onPressed: () => _shift(ref, period, 1),
-              ),
-            ],
-          ),
+          const PeriodSelector(),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text(
@@ -95,29 +66,6 @@ class ReportsScreen extends ConsumerWidget {
         ],
       ),
     );
-  }
-
-  void _shift(WidgetRef ref, ReportPeriod period, int direction) {
-    final anchor = ref.read(reportAnchorProvider);
-    ref.read(reportAnchorProvider.notifier).state =
-        ReportRangeCalculator.shift(period, anchor, direction);
-  }
-
-  String _rangeLabel(ReportPeriod period, ReportRange range) {
-    String d(DateTime x) =>
-        '${x.day.toString().padLeft(2, '0')}.${x.month.toString().padLeft(2, '0')}';
-    switch (period) {
-      case ReportPeriod.day:
-        return '${d(range.firstDay)}.${range.firstDay.year}';
-      case ReportPeriod.week:
-        return '${d(range.firstDay)} – ${d(range.lastDay)}';
-      case ReportPeriod.month:
-        const months = [
-          'sty', 'lut', 'mar', 'kwi', 'maj', 'cze',
-          'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'
-        ];
-        return '${months[range.firstDay.month - 1]} ${range.firstDay.year}';
-    }
   }
 }
 

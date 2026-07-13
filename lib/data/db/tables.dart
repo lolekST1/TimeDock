@@ -16,6 +16,9 @@ class Workspaces extends Table with AuditColumns {
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
   BoolColumn get isArchived => boolean().withDefault(const Constant(false))();
 
+  /// Optional weekly target in minutes (added in schema v2).
+  IntColumn get weeklyGoalMinutes => integer().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }

@@ -167,6 +167,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
         ReportPeriod.day => 'Dzień',
         ReportPeriod.week => 'Tydzień',
         ReportPeriod.month => 'Miesiąc',
+        ReportPeriod.custom => 'Zakres',
       };
 
   String _rangeText(ReportRange r) {

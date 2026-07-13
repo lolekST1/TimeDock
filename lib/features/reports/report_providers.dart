@@ -14,11 +14,20 @@ final reportAnchorProvider = StateProvider<DateTime>((ref) {
   return DateTime.utc(now.year, now.month, now.day);
 });
 
-final reportRangeProvider = Provider<ReportRange>((ref) {
+/// The user-chosen range when [reportPeriodProvider] is [ReportPeriod.custom].
+/// Defaults to the current week until the user picks a range.
+final customRangeProvider = StateProvider<ReportRange>((ref) {
+  final now = DateTime.now();
   return ReportRangeCalculator.rangeFor(
-    ref.watch(reportPeriodProvider),
-    ref.watch(reportAnchorProvider),
-  );
+      ReportPeriod.week, DateTime.utc(now.year, now.month, now.day));
+});
+
+final reportRangeProvider = Provider<ReportRange>((ref) {
+  final period = ref.watch(reportPeriodProvider);
+  if (period == ReportPeriod.custom) {
+    return ref.watch(customRangeProvider);
+  }
+  return ReportRangeCalculator.rangeFor(period, ref.watch(reportAnchorProvider));
 });
 
 /// The aggregated report tree for the selected workspace and period, live.

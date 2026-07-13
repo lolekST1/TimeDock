@@ -11,13 +11,19 @@ class TimeDockDatabase extends _$TimeDockDatabase {
   TimeDockDatabase(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) async {
           await m.createAll();
           await _createIndexes();
+        },
+        onUpgrade: (m, from, to) async {
+          // v2: per-workspace weekly goal.
+          if (from < 2) {
+            await m.addColumn(workspaces, workspaces.weeklyGoalMinutes);
+          }
         },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
