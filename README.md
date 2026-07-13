@@ -53,6 +53,19 @@ Zasada: cała logika wpływająca na poprawność danych żyje w `domain` i jest
 
 ## Uruchomienie
 
+### Najszybciej: gotowy APK z GitHub Actions (bez instalacji Fluttera)
+
+Po każdym pushu na gałąź roboczą workflow **Build APK** buduje instalowalny plik:
+
+1. GitHub → zakładka **Actions** → ostatni bieg „Build APK”.
+2. Sekcja **Artifacts** → pobierz **timedock-apk** (ZIP z `app-debug.apk`).
+3. Rozpakuj i przenieś APK na telefon; zainstaluj (zezwól na „instalację z
+   nieznanych źródeł”).
+
+Możesz też odpalić build ręcznie: Actions → Build APK → **Run workflow**.
+
+### Lokalnie (gdy masz Flutter SDK)
+
 ```bash
 flutter pub get
 dart run build_runner build --delete-conflicting-outputs   # generuje kod Drift
