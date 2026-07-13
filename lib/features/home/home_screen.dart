@@ -7,6 +7,7 @@ import '../../domain/entities/project.dart';
 import '../app_state/app_providers.dart';
 import '../history/history_screen.dart';
 import '../reports/reports_screen.dart';
+import '../settings/settings_screen.dart';
 import '../stats/stats_screen.dart';
 import 'widgets/active_timer_bar.dart';
 import 'widgets/entity_dialogs.dart';
@@ -69,6 +70,15 @@ class HomeScreen extends ConsumerWidget {
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
                 builder: (_) => HistoryScreen(workspaceId: selectedId),
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Ustawienia',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const SettingsScreen(),
               ),
             ),
           ),

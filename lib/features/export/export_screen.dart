@@ -5,6 +5,7 @@ import '../../domain/services/csv_exporter.dart';
 import '../../domain/services/export_config.dart';
 import '../../domain/services/report_range.dart';
 import '../reports/report_providers.dart';
+import '../settings/settings_controller.dart';
 import 'export_providers.dart';
 
 /// Export the selected report range to CSV, and manage local JSON backups.
@@ -19,9 +20,20 @@ class ExportScreen extends ConsumerStatefulWidget {
 }
 
 class _ExportScreenState extends ConsumerState<ExportScreen> {
-  HourFormat _hourFormat = HourFormat.hoursMinutes;
-  bool _roundTo15 = false;
+  late HourFormat _hourFormat;
+  late bool _roundTo15;
   bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Seed from the saved export defaults; the user can still override per run.
+    final settings = ref.read(settingsProvider);
+    _hourFormat = settings.exportDecimalHours
+        ? HourFormat.decimalHours
+        : HourFormat.hoursMinutes;
+    _roundTo15 = settings.exportRoundTo15;
+  }
 
   ExportConfig get _config => ExportConfig(
         hourFormat: _hourFormat,

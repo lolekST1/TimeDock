@@ -1,0 +1,97 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../domain/services/export_config.dart';
+import '../../domain/services/forgotten_timer.dart';
+import '../app_state/app_providers.dart';
+
+/// User-configurable app settings, persisted in SharedPreferences. Kept small
+/// and global for now; the forgotten-timer settings map to the domain type.
+class AppSettings {
+  const AppSettings({
+    this.forgottenTimerEnabled = true,
+    this.forgottenTimerThresholdHours = 4,
+    this.exportDecimalHours = false,
+    this.exportRoundTo15 = false,
+  });
+
+  final bool forgottenTimerEnabled;
+  final int forgottenTimerThresholdHours;
+  final bool exportDecimalHours;
+  final bool exportRoundTo15;
+
+  ForgottenTimerSettings get forgottenTimer => ForgottenTimerSettings(
+        enabled: forgottenTimerEnabled,
+        threshold: Duration(hours: forgottenTimerThresholdHours),
+      );
+
+  ExportConfig exportConfig({String csvSeparator = ','}) => ExportConfig(
+        csvSeparator: csvSeparator,
+        hourFormat:
+            exportDecimalHours ? HourFormat.decimalHours : HourFormat.hoursMinutes,
+        rounding: exportRoundTo15
+            ? const ExportRounding(increment: Duration(minutes: 15))
+            : ExportRounding.none,
+      );
+
+  AppSettings copyWith({
+    bool? forgottenTimerEnabled,
+    int? forgottenTimerThresholdHours,
+    bool? exportDecimalHours,
+    bool? exportRoundTo15,
+  }) {
+    return AppSettings(
+      forgottenTimerEnabled:
+          forgottenTimerEnabled ?? this.forgottenTimerEnabled,
+      forgottenTimerThresholdHours:
+          forgottenTimerThresholdHours ?? this.forgottenTimerThresholdHours,
+      exportDecimalHours: exportDecimalHours ?? this.exportDecimalHours,
+      exportRoundTo15: exportRoundTo15 ?? this.exportRoundTo15,
+    );
+  }
+}
+
+class SettingsController extends Notifier<AppSettings> {
+  static const _kEnabled = 'forgotten_timer_enabled';
+  static const _kThreshold = 'forgotten_timer_threshold_hours';
+  static const _kDecimal = 'export_decimal_hours';
+  static const _kRound = 'export_round_15';
+
+  @override
+  AppSettings build() {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    const defaults = AppSettings();
+    return AppSettings(
+      forgottenTimerEnabled:
+          prefs.getBool(_kEnabled) ?? defaults.forgottenTimerEnabled,
+      forgottenTimerThresholdHours:
+          prefs.getInt(_kThreshold) ?? defaults.forgottenTimerThresholdHours,
+      exportDecimalHours:
+          prefs.getBool(_kDecimal) ?? defaults.exportDecimalHours,
+      exportRoundTo15: prefs.getBool(_kRound) ?? defaults.exportRoundTo15,
+    );
+  }
+
+  Future<void> setForgottenTimerEnabled(bool value) async {
+    await ref.read(sharedPreferencesProvider).setBool(_kEnabled, value);
+    state = state.copyWith(forgottenTimerEnabled: value);
+  }
+
+  Future<void> setForgottenTimerThresholdHours(int hours) async {
+    final clamped = hours.clamp(1, 24);
+    await ref.read(sharedPreferencesProvider).setInt(_kThreshold, clamped);
+    state = state.copyWith(forgottenTimerThresholdHours: clamped);
+  }
+
+  Future<void> setExportDecimalHours(bool value) async {
+    await ref.read(sharedPreferencesProvider).setBool(_kDecimal, value);
+    state = state.copyWith(exportDecimalHours: value);
+  }
+
+  Future<void> setExportRoundTo15(bool value) async {
+    await ref.read(sharedPreferencesProvider).setBool(_kRound, value);
+    state = state.copyWith(exportRoundTo15: value);
+  }
+}
+
+final settingsProvider =
+    NotifierProvider<SettingsController, AppSettings>(SettingsController.new);

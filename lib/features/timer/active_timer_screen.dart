@@ -10,6 +10,7 @@ import '../../domain/services/forgotten_timer.dart';
 import '../app_state/app_providers.dart';
 import '../app_state/context_label.dart';
 import '../history/history_providers.dart';
+import '../settings/settings_controller.dart';
 import 'context_picker.dart';
 
 /// The active-timer screen. The counter dominates; the context, comment and
@@ -241,7 +242,7 @@ class _ActiveTimerScreenState extends ConsumerState<ActiveTimerScreen> {
       return;
     }
     final now = DateTime.now().toUtc();
-    const settings = ForgottenTimerSettings();
+    final settings = ref.read(settingsProvider).forgottenTimer;
 
     if (ForgottenTimer.shouldSuggestTrimOnStop(session, now, settings)) {
       final trimTo = await _askTrim(session, now, settings);
