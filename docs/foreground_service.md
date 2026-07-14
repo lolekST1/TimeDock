@@ -1,5 +1,14 @@
 # Foreground service — notatka wdrożeniowa (etap 3)
 
+> STATUS: zaimplementowane (flutter_foreground_task). Powiadomienie z żywym
+> licznikiem i przyciskiem STOP działa; STOP z powiadomienia jest mostkowany do
+> głównego izolatu, który zatrzymuje timer przez bazę (strumienie Riverpod
+> aktualizują się normalnie). Pozostaje: zaplanowane przypomnienie o zapomnianym
+> timerze jako osobna notyfikacja (poniżej) oraz weryfikacja na urządzeniu.
+> Implementacja: `lib/data/services/android_timer_foreground_service.dart`,
+> wpięcie w `main.dart` i `app.dart` (WithForegroundTask), manifest.
+
+
 Warstwa Dart timera jest kompletna i nie zależy od żywego procesu:
 źródłem prawdy jest rekord sesji w bazie z `endUtc == null` (patrz
 `TimerService`, `SessionRepository.watchActive`). Timer odtwarza się po

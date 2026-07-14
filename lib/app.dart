@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/theme.dart';
@@ -51,7 +52,9 @@ class TimeDockApp extends ConsumerWidget {
       themeMode: themeMode,
       theme: timeDockTheme(seed, Brightness.light),
       darkTheme: timeDockTheme(seed, Brightness.dark),
-      home: const HomeScreen(),
+      // Enables the ongoing-timer notification's tap-to-open and the STOP
+      // button bridge to work while this screen is mounted.
+      home: const WithForegroundTask(child: HomeScreen()),
     );
   }
 }
