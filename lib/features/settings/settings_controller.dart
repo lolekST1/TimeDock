@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/services/export_config.dart';
@@ -12,12 +13,14 @@ class AppSettings {
     this.forgottenTimerThresholdHours = 4,
     this.exportDecimalHours = false,
     this.exportRoundTo15 = false,
+    this.themeMode = ThemeMode.system,
   });
 
   final bool forgottenTimerEnabled;
   final int forgottenTimerThresholdHours;
   final bool exportDecimalHours;
   final bool exportRoundTo15;
+  final ThemeMode themeMode;
 
   ForgottenTimerSettings get forgottenTimer => ForgottenTimerSettings(
         enabled: forgottenTimerEnabled,
@@ -38,6 +41,7 @@ class AppSettings {
     int? forgottenTimerThresholdHours,
     bool? exportDecimalHours,
     bool? exportRoundTo15,
+    ThemeMode? themeMode,
   }) {
     return AppSettings(
       forgottenTimerEnabled:
@@ -46,6 +50,7 @@ class AppSettings {
           forgottenTimerThresholdHours ?? this.forgottenTimerThresholdHours,
       exportDecimalHours: exportDecimalHours ?? this.exportDecimalHours,
       exportRoundTo15: exportRoundTo15 ?? this.exportRoundTo15,
+      themeMode: themeMode ?? this.themeMode,
     );
   }
 }
@@ -55,6 +60,7 @@ class SettingsController extends Notifier<AppSettings> {
   static const _kThreshold = 'forgotten_timer_threshold_hours';
   static const _kDecimal = 'export_decimal_hours';
   static const _kRound = 'export_round_15';
+  static const _kThemeMode = 'theme_mode';
 
   @override
   AppSettings build() {
@@ -68,7 +74,19 @@ class SettingsController extends Notifier<AppSettings> {
       exportDecimalHours:
           prefs.getBool(_kDecimal) ?? defaults.exportDecimalHours,
       exportRoundTo15: prefs.getBool(_kRound) ?? defaults.exportRoundTo15,
+      themeMode: _themeModeFromString(prefs.getString(_kThemeMode)),
     );
+  }
+
+  static ThemeMode _themeModeFromString(String? value) => switch (value) {
+        'light' => ThemeMode.light,
+        'dark' => ThemeMode.dark,
+        _ => ThemeMode.system,
+      };
+
+  Future<void> setThemeMode(ThemeMode mode) async {
+    await ref.read(sharedPreferencesProvider).setString(_kThemeMode, mode.name);
+    state = state.copyWith(themeMode: mode);
   }
 
   Future<void> setForgottenTimerEnabled(bool value) async {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/colors.dart';
 import '../../../data/providers.dart';
 import '../../../domain/entities/project.dart';
 import '../../../domain/entities/sub_project.dart';
@@ -38,8 +39,12 @@ class _ProjectSheet extends ConsumerWidget {
         .where((p) => p.id == project.id)
         .firstOrNull ??
         project;
+    final allSubProjects =
+        ref.watch(allSubProjectsProvider(project.id)).valueOrNull ?? const [];
     final subProjects =
-        ref.watch(subProjectsProvider(project.id)).valueOrNull ?? const [];
+        allSubProjects.where((s) => !s.isArchived).toList(growable: false);
+    final archivedSubProjects =
+        allSubProjects.where((s) => s.isArchived).toList(growable: false);
     final tasks =
         ref.watch(tasksProvider(project.id)).valueOrNull ?? const [];
 
@@ -84,6 +89,27 @@ class _ProjectSheet extends ConsumerWidget {
                 title: const Text('Dodaj podprojekt'),
                 onTap: () => _addSubProject(context, ref),
               ),
+            if (archivedSubProjects.isNotEmpty) ...[
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
+                child: Text('Zarchiwizowane podprojekty',
+                    style: TextStyle(fontSize: 12)),
+              ),
+              for (final sub in archivedSubProjects)
+                ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.folder_off_outlined),
+                  title: Text(sub.name),
+                  trailing: TextButton(
+                    onPressed: () => ref
+                        .read(subProjectRepositoryProvider)
+                        .upsert(sub.copyWith(
+                            isArchived: false,
+                            updatedAt: DateTime.now().toUtc())),
+                    child: const Text('Przywróć'),
+                  ),
+                ),
+            ],
             _SectionHeader(
               title: 'Zadania',
               onAdd: () => _addTask(context, ref, null),
@@ -172,17 +198,31 @@ class _SubProjectTile extends ConsumerWidget {
     return ExpansionTile(
       title: Text(subProject.name),
       leading: const Icon(Icons.folder_outlined),
-      trailing: IconButton(
-        icon: const Icon(Icons.play_arrow_rounded),
-        onPressed: () => _startAndClose(
-          context,
-          ref,
-          SessionContext(
-            workspaceId: project.workspaceId,
-            projectId: project.id,
-            subProjectId: subProject.id,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.play_arrow_rounded),
+            tooltip: 'Start podprojektu',
+            onPressed: () => _startAndClose(
+              context,
+              ref,
+              SessionContext(
+                workspaceId: project.workspaceId,
+                projectId: project.id,
+                subProjectId: subProject.id,
+              ),
+            ),
           ),
-        ),
+          PopupMenuButton<String>(
+            onSelected: (action) => _onAction(context, ref, action),
+            itemBuilder: (context) => [
+              const PopupMenuItem(value: 'rename', child: Text('Zmień nazwę')),
+              const PopupMenuItem(
+                  value: 'archive', child: Text('Archiwizuj')),
+            ],
+          ),
+        ],
       ),
       childrenPadding: const EdgeInsets.only(left: 16),
       children: [
@@ -212,6 +252,22 @@ class _SubProjectTile extends ConsumerWidget {
           createdAt: now,
           updatedAt: now,
         ));
+  }
+
+  Future<void> _onAction(
+      BuildContext context, WidgetRef ref, String action) async {
+    final repo = ref.read(subProjectRepositoryProvider);
+    final now = DateTime.now().toUtc();
+    switch (action) {
+      case 'rename':
+        final name = await promptForName(context,
+            title: 'Nazwa podprojektu', initial: subProject.name);
+        if (name != null) {
+          await repo.upsert(subProject.copyWith(name: name, updatedAt: now));
+        }
+      case 'archive':
+        await repo.upsert(subProject.copyWith(isArchived: true, updatedAt: now));
+    }
   }
 }
 
@@ -270,6 +326,17 @@ class _ManageRow extends ConsumerWidget {
             if (name != null) {
               await repo.upsert(project.copyWith(
                   name: name, updatedAt: DateTime.now().toUtc()));
+            }
+          },
+        ),
+        TextButton.icon(
+          icon: Icon(Icons.palette_outlined, color: Color(project.color)),
+          label: const Text('Kolor'),
+          onPressed: () async {
+            final color = await pickEntityColor(context, project.color);
+            if (color != null) {
+              await repo.upsert(project.copyWith(
+                  color: color, updatedAt: DateTime.now().toUtc()));
             }
           },
         ),

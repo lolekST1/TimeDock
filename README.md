@@ -79,7 +79,7 @@ flutter analyze
 flutter test
 ```
 
-Pokrycie (116 testów): reguły czasowe (północ/DST), migracja bazy v1→v2,
+Pokrycie (118 testów): reguły czasowe (północ/DST), migracja bazy v1→v2,
 walidacja kolizji,
 agregacja raportów, reguła jednego timera + odtwarzanie po restarcie,
 zapomniany timer, oś dnia, podział/edycja sesji (w tym auto-przycięcie i

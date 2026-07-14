@@ -7,6 +7,7 @@ import 'domain/repositories/session_repository.dart';
 import 'features/app_state/app_providers.dart';
 import 'features/app_state/context_label.dart';
 import 'features/home/home_screen.dart';
+import 'features/settings/settings_controller.dart';
 
 class TimeDockApp extends ConsumerWidget {
   const TimeDockApp({super.key});
@@ -42,9 +43,12 @@ class TimeDockApp extends ConsumerWidget {
             ?.colorSeed ??
         0xFF1565C0;
 
+    final themeMode = ref.watch(settingsProvider).themeMode;
+
     return MaterialApp(
       title: 'TimeDock',
       debugShowCheckedModeBanner: false,
+      themeMode: themeMode,
       theme: timeDockTheme(seed, Brightness.light),
       darkTheme: timeDockTheme(seed, Brightness.dark),
       home: const HomeScreen(),

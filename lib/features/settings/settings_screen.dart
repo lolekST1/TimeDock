@@ -2,30 +2,43 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../core/colors.dart';
 import '../../data/providers.dart';
 import '../../domain/entities/workspace.dart';
 import '../app_state/app_providers.dart';
 import '../home/widgets/entity_dialogs.dart';
+import 'archive_screen.dart';
 import 'settings_controller.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
-
-  static const _workspaceColors = [
-    0xFF1565C0, 0xFF00695C, 0xFF6A1B9A, 0xFFAD1457,
-    0xFF4E342E, 0xFF283593, 0xFF00838F, 0xFFEF6C00,
-  ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
     final controller = ref.read(settingsProvider.notifier);
     final workspaces = ref.watch(workspacesProvider).valueOrNull ?? const [];
+    final selectedId = ref.watch(selectedWorkspaceProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Ustawienia')),
       body: ListView(
         children: [
+          _SectionTitle('Wygląd'),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: SegmentedButton<ThemeMode>(
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(value: ThemeMode.system, label: Text('System')),
+                ButtonSegment(value: ThemeMode.light, label: Text('Jasny')),
+                ButtonSegment(value: ThemeMode.dark, label: Text('Ciemny')),
+              ],
+              selected: {settings.themeMode},
+              onSelectionChanged: (s) => controller.setThemeMode(s.first),
+            ),
+          ),
+          const Divider(),
           _SectionTitle('Zapomniany timer'),
           SwitchListTile(
             title: const Text('Przypominaj o długim timerze'),
@@ -96,6 +109,19 @@ class SettingsScreen extends ConsumerWidget {
             title: const Text('Dodaj przestrzeń'),
             onTap: () => _addWorkspace(context, ref, workspaces.length),
           ),
+          const Divider(),
+          _SectionTitle('Archiwum'),
+          ListTile(
+            leading: const Icon(Icons.unarchive_outlined),
+            title: const Text('Zarchiwizowane projekty'),
+            subtitle: const Text('Przywróć ukryte w archiwum projekty'),
+            enabled: selectedId != null,
+            onTap: selectedId == null
+                ? null
+                : () => Navigator.of(context).push(MaterialPageRoute<void>(
+                      builder: (_) => ArchiveScreen(workspaceId: selectedId),
+                    )),
+          ),
           const SizedBox(height: 24),
         ],
       ),
@@ -110,7 +136,7 @@ class SettingsScreen extends ConsumerWidget {
     await ref.read(workspaceRepositoryProvider).upsert(Workspace(
           id: const Uuid().v4(),
           name: name,
-          colorSeed: _workspaceColors[existingCount % _workspaceColors.length],
+          colorSeed: kEntityColors[existingCount % kEntityColors.length],
           sortOrder: existingCount,
           createdAt: now,
           updatedAt: now,
@@ -134,7 +160,7 @@ class SettingsScreen extends ConsumerWidget {
           await repo.upsert(workspace.copyWith(name: name, updatedAt: now));
         }
       case 'color':
-        final color = await _pickColor(context, workspace.colorSeed);
+        final color = await pickEntityColor(context, workspace.colorSeed);
         if (color != null) {
           await repo.upsert(workspace.copyWith(colorSeed: color, updatedAt: now));
         }
@@ -183,30 +209,6 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Future<int?> _pickColor(BuildContext context, int current) {
-    return showDialog<int>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Kolor przestrzeni'),
-        content: Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: [
-            for (final c in _workspaceColors)
-              InkWell(
-                onTap: () => Navigator.of(context).pop(c),
-                child: CircleAvatar(
-                  backgroundColor: Color(c),
-                  child: c == current
-                      ? const Icon(Icons.check, color: Colors.white)
-                      : null,
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _SectionTitle extends StatelessWidget {

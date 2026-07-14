@@ -30,8 +30,17 @@ class ActiveTimerBar extends ConsumerWidget {
         )))
         .valueOrNull;
 
+    // The running bar takes the project's colour so the active timer is
+    // instantly recognisable; text/icon colour follows the bar's brightness.
+    final barColor =
+        label != null ? Color(label.color) : scheme.primaryContainer;
+    final onBar =
+        ThemeData.estimateBrightnessForColor(barColor) == Brightness.dark
+            ? Colors.white
+            : Colors.black;
+
     return Material(
-      color: scheme.primaryContainer,
+      color: barColor,
       child: InkWell(
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute<void>(
@@ -55,7 +64,7 @@ class ActiveTimerBar extends ConsumerWidget {
                             .textTheme
                             .titleLarge
                             ?.copyWith(
-                              color: scheme.onPrimaryContainer,
+                              color: onBar,
                               fontFeatures: const [
                                 FontFeature.tabularFigures()
                               ],
@@ -65,12 +74,16 @@ class ActiveTimerBar extends ConsumerWidget {
                         label?.path ?? '…',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: scheme.onPrimaryContainer),
+                        style: TextStyle(color: onBar),
                       ),
                     ],
                   ),
                 ),
-                FilledButton.tonalIcon(
+                FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: scheme.surface,
+                    foregroundColor: scheme.onSurface,
+                  ),
                   onPressed: () {
                     unawaited(HapticFeedback.mediumImpact());
                     ref.read(timerServiceProvider).stop();

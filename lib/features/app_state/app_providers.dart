@@ -72,6 +72,24 @@ final subProjectsProvider =
   return ref.watch(subProjectRepositoryProvider).watchByProject(projectId);
 });
 
+/// Sub-projects including archived ones, for management screens.
+final allSubProjectsProvider =
+    StreamProvider.family<List<SubProject>, String>((ref, projectId) {
+  return ref
+      .watch(subProjectRepositoryProvider)
+      .watchByProject(projectId, includeArchived: true);
+});
+
+/// Archived projects in a workspace, for the restore/archive screen.
+final archivedProjectsProvider =
+    StreamProvider.family<List<Project>, String>((ref, workspaceId) {
+  return ref
+      .watch(projectRepositoryProvider)
+      .watchByWorkspace(workspaceId, includeHidden: true, includeArchived: true)
+      .map((projects) =>
+          projects.where((p) => p.isArchived).toList(growable: false));
+});
+
 final tasksProvider =
     StreamProvider.family<List<Task>, String>((ref, projectId) {
   return ref.watch(taskRepositoryProvider).watchByProject(projectId);

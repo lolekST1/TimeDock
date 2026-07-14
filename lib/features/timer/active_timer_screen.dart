@@ -110,9 +110,19 @@ class _ActiveTimerScreenState extends ConsumerState<ActiveTimerScreen> {
         )))
         .valueOrNull;
     final scheme = Theme.of(context).colorScheme;
+    final projectColor = label != null ? Color(label.color) : null;
+    final onProject = projectColor != null &&
+            ThemeData.estimateBrightnessForColor(projectColor) ==
+                Brightness.dark
+        ? Colors.white
+        : Colors.black;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Aktywny timer')),
+      appBar: AppBar(
+        title: const Text('Aktywny timer'),
+        backgroundColor: projectColor,
+        foregroundColor: projectColor != null ? onProject : null,
+      ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

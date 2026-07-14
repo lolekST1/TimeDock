@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -67,6 +68,23 @@ void main() {
     expect(container.read(settingsProvider).forgottenTimerThresholdHours, 1);
     await controller.setForgottenTimerThresholdHours(48);
     expect(container.read(settingsProvider).forgottenTimerThresholdHours, 24);
+  });
+
+  test('theme mode defaults to system and persists a choice', () async {
+    final container = await _container({});
+    addTearDown(container.dispose);
+    expect(container.read(settingsProvider).themeMode, ThemeMode.system);
+
+    await container.read(settingsProvider.notifier).setThemeMode(ThemeMode.light);
+    expect(container.read(settingsProvider).themeMode, ThemeMode.light);
+    expect(container.read(sharedPreferencesProvider).getString('theme_mode'),
+        'light');
+  });
+
+  test('reads a stored theme mode', () async {
+    final container = await _container({'theme_mode': 'dark'});
+    addTearDown(container.dispose);
+    expect(container.read(settingsProvider).themeMode, ThemeMode.dark);
   });
 
   test('maps to domain forgotten-timer and export config', () async {

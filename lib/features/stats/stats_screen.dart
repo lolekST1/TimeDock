@@ -26,12 +26,16 @@ class StatsScreen extends ConsumerWidget {
           Expanded(
             child: stats.sessionCount == 0
                 ? const Center(child: Text('Brak danych w tym okresie'))
-                : GridView.count(
+                : GridView(
                     padding: const EdgeInsets.all(16),
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: 1.5,
+                    // Fixed card height avoids per-device aspect-ratio overflow.
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      mainAxisExtent: 150,
+                    ),
                     children: [
                       _FocusCard(score: stats.focusScore),
                       _StatCard(
@@ -184,11 +188,13 @@ class _FocusCard extends StatelessWidget {
           children: [
             Icon(Icons.center_focus_strong, color: scheme.onPrimaryContainer),
             Text('$score',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: scheme.onPrimaryContainer,
                     )),
             Text('Focus Score',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(color: scheme.onPrimaryContainer)),
           ],
         ),

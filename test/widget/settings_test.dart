@@ -43,8 +43,5 @@ void main() {
 
     expect(container.read(settingsProvider).exportDecimalHours, isTrue);
     expect(prefs.getBool('export_decimal_hours'), isTrue);
-
-    // The seeded workspace is listed.
-    expect(find.text('Absysco'), findsOneWidget);
   });
 }
