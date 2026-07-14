@@ -1,0 +1,127 @@
+import 'package:flutter/services.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/timezone.dart' as tz;
+
+import '../../domain/entities/time_session.dart';
+import '../../domain/services/forgotten_timer.dart';
+
+/// Schedules the forgotten-timer reminder. Abstract so tests and non-Android
+/// platforms use a no-op.
+abstract interface class ReminderScheduler {
+  Future<void> scheduleFor(
+    TimeSession session,
+    ForgottenTimerSettings settings, {
+    String contextLabel,
+  });
+
+  Future<void> cancel();
+}
+
+class NoopReminderScheduler implements ReminderScheduler {
+  const NoopReminderScheduler();
+
+  @override
+  Future<void> scheduleFor(
+    TimeSession session,
+    ForgottenTimerSettings settings, {
+    String contextLabel = '',
+  }) async {}
+
+  @override
+  Future<void> cancel() async {}
+}
+
+/// Android implementation: a SYSTEM alarm (exact-allow-while-idle), so the
+/// reminder fires at start+threshold even in deep Doze or under aggressive
+/// OEM throttling — independent of any Dart isolate being alive.
+class AndroidReminderScheduler implements ReminderScheduler {
+  AndroidReminderScheduler([FlutterLocalNotificationsPlugin? plugin])
+      : _plugin = plugin ?? FlutterLocalNotificationsPlugin();
+
+  static const _notificationId = 1001;
+  static const _channelId = 'timedock_reminder';
+
+  final FlutterLocalNotificationsPlugin _plugin;
+  bool _initialized = false;
+
+  Future<void> _ensureInitialized() async {
+    if (_initialized) return;
+    const settings = InitializationSettings(
+      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+    );
+    await _plugin.initialize(settings);
+    await _plugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(const AndroidNotificationChannel(
+          _channelId,
+          'Przypomnienia',
+          description: 'Ostrzeżenie o długo działającym timerze',
+          importance: Importance.high,
+        ));
+    _initialized = true;
+  }
+
+  /// (Re)schedules the reminder for [session] according to [settings];
+  /// cancels any previous one first. No-op when reminders are disabled or
+  /// the fire time already passed (the in-app trim dialog covers that case).
+  @override
+  Future<void> scheduleFor(
+    TimeSession session,
+    ForgottenTimerSettings settings, {
+    String contextLabel = '',
+  }) async {
+    await _ensureInitialized();
+    await _plugin.cancel(_notificationId);
+    if (!settings.enabled) return;
+
+    final fireAtUtc = session.startUtc.add(settings.threshold);
+    if (!fireAtUtc.isAfter(DateTime.now().toUtc())) return;
+
+    final label = contextLabel.isEmpty ? 'bieżącym zadaniem' : contextLabel;
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        _channelId,
+        'Przypomnienia',
+        channelDescription: 'Ostrzeżenie o długo działającym timerze',
+        importance: Importance.high,
+        priority: Priority.high,
+      ),
+    );
+    final body = 'Timer nad $label działa dłużej niż zwykle. '
+        'Otwórz TimeDock, aby zatrzymać lub przyciąć sesję.';
+    final fireAt = tz.TZDateTime.from(fireAtUtc, tz.UTC);
+
+    try {
+      await _plugin.zonedSchedule(
+        _notificationId,
+        'Nadal pracujesz?',
+        body,
+        fireAt,
+        details,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
+    } on PlatformException {
+      // Exact alarms unavailable (permission revoked): degrade to inexact,
+      // which may be delayed by Doze but still fires.
+      await _plugin.zonedSchedule(
+        _notificationId,
+        'Nadal pracujesz?',
+        body,
+        fireAt,
+        details,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
+    }
+  }
+
+  @override
+  Future<void> cancel() async {
+    await _ensureInitialized();
+    await _plugin.cancel(_notificationId);
+  }
+}

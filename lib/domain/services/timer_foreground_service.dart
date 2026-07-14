@@ -15,6 +15,11 @@ abstract interface class TimerForegroundService {
 
   /// Remove the ongoing notification and stop the foreground service.
   Future<void> hide();
+
+  /// If the user pressed STOP on the notification while the app was frozen or
+  /// dead, returns the recorded stop instant (UTC) exactly once, so the
+  /// session can be closed at the moment STOP was actually pressed.
+  Future<DateTime?> takePendingStop();
 }
 
 /// Default no-op used in tests, on unsupported platforms, and until the native
@@ -28,4 +33,7 @@ class NoopTimerForegroundService implements TimerForegroundService {
 
   @override
   Future<void> hide() async {}
+
+  @override
+  Future<DateTime?> takePendingStop() async => null;
 }

@@ -50,6 +50,11 @@ class TimerService {
   /// Stops the running timer, if any. Returns the saved session or null.
   Future<TimeSession?> stop() => _stopActiveAt(_nowUtc());
 
+  /// Stops the running timer at a specific past instant — used when STOP was
+  /// pressed on the notification while the app was frozen/dead and the exact
+  /// moment was recorded natively (pending stop).
+  Future<TimeSession?> stopAt(DateTime endUtc) => _stopActiveAt(endUtc);
+
   /// Changes the context of the running timer without restarting the clock.
   /// No-op when nothing is running.
   Future<TimeSession?> switchContext(SessionContext context) async {

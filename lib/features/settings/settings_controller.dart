@@ -10,21 +10,21 @@ import '../app_state/app_providers.dart';
 class AppSettings {
   const AppSettings({
     this.forgottenTimerEnabled = true,
-    this.forgottenTimerThresholdHours = 4,
+    this.forgottenTimerThresholdMinutes = 240,
     this.exportDecimalHours = false,
     this.exportRoundTo15 = false,
     this.themeMode = ThemeMode.system,
   });
 
   final bool forgottenTimerEnabled;
-  final int forgottenTimerThresholdHours;
+  final int forgottenTimerThresholdMinutes;
   final bool exportDecimalHours;
   final bool exportRoundTo15;
   final ThemeMode themeMode;
 
   ForgottenTimerSettings get forgottenTimer => ForgottenTimerSettings(
         enabled: forgottenTimerEnabled,
-        threshold: Duration(hours: forgottenTimerThresholdHours),
+        threshold: Duration(minutes: forgottenTimerThresholdMinutes),
       );
 
   ExportConfig exportConfig({String csvSeparator = ','}) => ExportConfig(
@@ -38,7 +38,7 @@ class AppSettings {
 
   AppSettings copyWith({
     bool? forgottenTimerEnabled,
-    int? forgottenTimerThresholdHours,
+    int? forgottenTimerThresholdMinutes,
     bool? exportDecimalHours,
     bool? exportRoundTo15,
     ThemeMode? themeMode,
@@ -46,8 +46,8 @@ class AppSettings {
     return AppSettings(
       forgottenTimerEnabled:
           forgottenTimerEnabled ?? this.forgottenTimerEnabled,
-      forgottenTimerThresholdHours:
-          forgottenTimerThresholdHours ?? this.forgottenTimerThresholdHours,
+      forgottenTimerThresholdMinutes: forgottenTimerThresholdMinutes ??
+          this.forgottenTimerThresholdMinutes,
       exportDecimalHours: exportDecimalHours ?? this.exportDecimalHours,
       exportRoundTo15: exportRoundTo15 ?? this.exportRoundTo15,
       themeMode: themeMode ?? this.themeMode,
@@ -57,7 +57,8 @@ class AppSettings {
 
 class SettingsController extends Notifier<AppSettings> {
   static const _kEnabled = 'forgotten_timer_enabled';
-  static const _kThreshold = 'forgotten_timer_threshold_hours';
+  static const _kThresholdMinutes = 'forgotten_timer_threshold_minutes';
+  static const _kLegacyThresholdHours = 'forgotten_timer_threshold_hours';
   static const _kDecimal = 'export_decimal_hours';
   static const _kRound = 'export_round_15';
   static const _kThemeMode = 'theme_mode';
@@ -66,11 +67,15 @@ class SettingsController extends Notifier<AppSettings> {
   AppSettings build() {
     final prefs = ref.watch(sharedPreferencesProvider);
     const defaults = AppSettings();
+    // Migration: the threshold used to be stored in hours.
+    final legacyHours = prefs.getInt(_kLegacyThresholdHours);
     return AppSettings(
       forgottenTimerEnabled:
           prefs.getBool(_kEnabled) ?? defaults.forgottenTimerEnabled,
-      forgottenTimerThresholdHours:
-          prefs.getInt(_kThreshold) ?? defaults.forgottenTimerThresholdHours,
+      forgottenTimerThresholdMinutes: prefs.getInt(_kThresholdMinutes) ??
+          (legacyHours != null
+              ? legacyHours * 60
+              : defaults.forgottenTimerThresholdMinutes),
       exportDecimalHours:
           prefs.getBool(_kDecimal) ?? defaults.exportDecimalHours,
       exportRoundTo15: prefs.getBool(_kRound) ?? defaults.exportRoundTo15,
@@ -94,10 +99,12 @@ class SettingsController extends Notifier<AppSettings> {
     state = state.copyWith(forgottenTimerEnabled: value);
   }
 
-  Future<void> setForgottenTimerThresholdHours(int hours) async {
-    final clamped = hours.clamp(1, 24);
-    await ref.read(sharedPreferencesProvider).setInt(_kThreshold, clamped);
-    state = state.copyWith(forgottenTimerThresholdHours: clamped);
+  Future<void> setForgottenTimerThresholdMinutes(int minutes) async {
+    final clamped = minutes.clamp(5, 24 * 60);
+    await ref
+        .read(sharedPreferencesProvider)
+        .setInt(_kThresholdMinutes, clamped);
+    state = state.copyWith(forgottenTimerThresholdMinutes: clamped);
   }
 
   Future<void> setExportDecimalHours(bool value) async {

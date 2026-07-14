@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/providers.dart';
+import '../../data/services/reminder_scheduler.dart';
 import '../../domain/entities/project.dart';
 import '../../domain/entities/sub_project.dart';
 import '../../domain/entities/task.dart';
@@ -23,6 +24,11 @@ final timerServiceProvider = Provider<TimerService>(
 /// timer works regardless of whether the service is alive.
 final timerForegroundServiceProvider = Provider<TimerForegroundService>(
     (ref) => const NoopTimerForegroundService());
+
+/// Forgotten-timer reminder scheduling (system alarm). No-op by default;
+/// Android override in [main].
+final reminderSchedulerProvider =
+    Provider<ReminderScheduler>((ref) => const NoopReminderScheduler());
 
 /// The single running session across the whole app, or null. Sourced from the
 /// database so it is correct after a restart.

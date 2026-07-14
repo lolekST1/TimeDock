@@ -13,6 +13,20 @@ import 'settings_controller.dart';
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
+  static const _thresholdOptions = [15, 30, 60, 120, 240, 360, 480];
+
+  static String _minutesLabel(int minutes) => minutes < 60
+      ? '$minutes min'
+      : minutes % 60 == 0
+          ? '${minutes ~/ 60} h'
+          : '${minutes ~/ 60} h ${minutes % 60} min';
+
+  /// The dropdown needs its value to be one of the items; snap a custom or
+  /// migrated value to the nearest option.
+  static int _closestOption(int minutes) =>
+      _thresholdOptions.reduce((a, b) =>
+          (a - minutes).abs() <= (b - minutes).abs() ? a : b);
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
@@ -50,17 +64,17 @@ class SettingsScreen extends ConsumerWidget {
           ListTile(
             enabled: settings.forgottenTimerEnabled,
             title: const Text('Próg przypomnienia'),
-            subtitle: Text('${settings.forgottenTimerThresholdHours} h'),
+            subtitle: Text(_minutesLabel(settings.forgottenTimerThresholdMinutes)),
             trailing: DropdownButton<int>(
-              value: settings.forgottenTimerThresholdHours,
+              value: _closestOption(settings.forgottenTimerThresholdMinutes),
               items: [
-                for (final h in const [1, 2, 3, 4, 6, 8, 10, 12])
-                  DropdownMenuItem(value: h, child: Text('$h h')),
+                for (final m in _thresholdOptions)
+                  DropdownMenuItem(value: m, child: Text(_minutesLabel(m))),
               ],
               onChanged: settings.forgottenTimerEnabled
-                  ? (h) {
-                      if (h != null) {
-                        controller.setForgottenTimerThresholdHours(h);
+                  ? (m) {
+                      if (m != null) {
+                        controller.setForgottenTimerThresholdMinutes(m);
                       }
                     }
                   : null,

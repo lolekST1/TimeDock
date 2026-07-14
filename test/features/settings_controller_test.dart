@@ -20,7 +20,7 @@ void main() {
     addTearDown(container.dispose);
     final s = container.read(settingsProvider);
     expect(s.forgottenTimerEnabled, isTrue);
-    expect(s.forgottenTimerThresholdHours, 4);
+    expect(s.forgottenTimerThresholdMinutes, 240);
     expect(s.exportDecimalHours, isFalse);
     expect(s.exportRoundTo15, isFalse);
   });
@@ -28,14 +28,14 @@ void main() {
   test('reads stored values', () async {
     final container = await _container({
       'forgotten_timer_enabled': false,
-      'forgotten_timer_threshold_hours': 8,
+      'forgotten_timer_threshold_minutes': 30,
       'export_decimal_hours': true,
       'export_round_15': true,
     });
     addTearDown(container.dispose);
     final s = container.read(settingsProvider);
     expect(s.forgottenTimerEnabled, isFalse);
-    expect(s.forgottenTimerThresholdHours, 8);
+    expect(s.forgottenTimerThresholdMinutes, 30);
     expect(s.exportDecimalHours, isTrue);
     expect(s.exportRoundTo15, isTrue);
   });
@@ -45,18 +45,18 @@ void main() {
     addTearDown(container.dispose);
     final controller = container.read(settingsProvider.notifier);
 
-    await controller.setForgottenTimerThresholdHours(6);
+    await controller.setForgottenTimerThresholdMinutes(90);
     await controller.setForgottenTimerEnabled(false);
     await controller.setExportDecimalHours(true);
 
     final s = container.read(settingsProvider);
-    expect(s.forgottenTimerThresholdHours, 6);
+    expect(s.forgottenTimerThresholdMinutes, 90);
     expect(s.forgottenTimerEnabled, isFalse);
     expect(s.exportDecimalHours, isTrue);
 
     // Persisted: a fresh controller over the same prefs sees the values.
     final prefs = container.read(sharedPreferencesProvider);
-    expect(prefs.getInt('forgotten_timer_threshold_hours'), 6);
+    expect(prefs.getInt('forgotten_timer_threshold_minutes'), 90);
     expect(prefs.getBool('forgotten_timer_enabled'), isFalse);
   });
 
@@ -64,10 +64,19 @@ void main() {
     final container = await _container({});
     addTearDown(container.dispose);
     final controller = container.read(settingsProvider.notifier);
-    await controller.setForgottenTimerThresholdHours(0);
-    expect(container.read(settingsProvider).forgottenTimerThresholdHours, 1);
-    await controller.setForgottenTimerThresholdHours(48);
-    expect(container.read(settingsProvider).forgottenTimerThresholdHours, 24);
+    await controller.setForgottenTimerThresholdMinutes(1);
+    expect(container.read(settingsProvider).forgottenTimerThresholdMinutes, 5);
+    await controller.setForgottenTimerThresholdMinutes(48 * 60);
+    expect(container.read(settingsProvider).forgottenTimerThresholdMinutes,
+        24 * 60);
+  });
+
+  test('migrates a legacy hours value to minutes', () async {
+    final container =
+        await _container({'forgotten_timer_threshold_hours': 2});
+    addTearDown(container.dispose);
+    expect(
+        container.read(settingsProvider).forgottenTimerThresholdMinutes, 120);
   });
 
   test('theme mode defaults to system and persists a choice', () async {
@@ -89,14 +98,14 @@ void main() {
 
   test('maps to domain forgotten-timer and export config', () async {
     final container = await _container({
-      'forgotten_timer_threshold_hours': 3,
+      'forgotten_timer_threshold_minutes': 45,
       'export_decimal_hours': true,
       'export_round_15': true,
     });
     addTearDown(container.dispose);
     final s = container.read(settingsProvider);
 
-    expect(s.forgottenTimer.threshold, const Duration(hours: 3));
+    expect(s.forgottenTimer.threshold, const Duration(minutes: 45));
     final config = s.exportConfig();
     expect(config.hourFormat, HourFormat.decimalHours);
     expect(config.rounding.increment, const Duration(minutes: 15));
