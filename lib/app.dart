@@ -24,15 +24,26 @@ class TimeDockApp extends ConsumerWidget {
         service.hide();
         return;
       }
-      final label = ref
-          .read(contextLabelProvider(SessionContext(
-            workspaceId: session.workspaceId,
-            projectId: session.projectId,
-            subProjectId: session.subProjectId,
-            taskId: session.taskId,
-          )))
-          .valueOrNull;
-      service.show(session, label?.path ?? '');
+      final context = SessionContext(
+        workspaceId: session.workspaceId,
+        projectId: session.projectId,
+        subProjectId: session.subProjectId,
+        taskId: session.taskId,
+      );
+      // Await the resolved label so the notification shows the project name
+      // rather than the fallback title (the label future may not be ready yet
+      // at start). Guard against a stale label overwriting a newer context.
+      ref.read(contextLabelProvider(context).future).then((label) {
+        final current = ref.read(activeSessionProvider).valueOrNull;
+        if (current == null) return;
+        final stillCurrent = current.id == session.id &&
+            current.projectId == session.projectId &&
+            current.subProjectId == session.subProjectId &&
+            current.taskId == session.taskId;
+        if (stillCurrent) {
+          service.show(session, label?.path ?? '');
+        }
+      });
     });
 
     // Theme follows the selected workspace's seed color.

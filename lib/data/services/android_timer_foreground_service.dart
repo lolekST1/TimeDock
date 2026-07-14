@@ -63,6 +63,11 @@ class AndroidTimerForegroundService implements TimerForegroundService {
       if (permission != NotificationPermission.granted) {
         await FlutterForegroundTask.requestNotificationPermission();
       }
+      // Ask once to be exempt from battery optimization; without it Doze
+      // freezes the counter and the reminder when the screen is off.
+      if (!await FlutterForegroundTask.isIgnoringBatteryOptimizations) {
+        await FlutterForegroundTask.requestIgnoreBatteryOptimization();
+      }
       await FlutterForegroundTask.startService(
         serviceId: 256,
         notificationTitle: _title(contextLabel),
