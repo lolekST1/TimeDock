@@ -10,7 +10,7 @@ import android.content.Intent
  * Records the exact stop instant in the plugin-visible SharedPreferences file
  * so the session gets closed at the moment the user pressed STOP even if the
  * Dart side is frozen or dead (the app applies the pending stop on next
- * launch/resume), stops the service, and pokes the Dart side if it is alive.
+ * launch/resume), removes the notification, and pokes the Dart side if alive.
  */
 class TimerStopReceiver : BroadcastReceiver() {
 
@@ -25,7 +25,7 @@ class TimerStopReceiver : BroadcastReceiver() {
             .putLong(PENDING_STOP_KEY, System.currentTimeMillis())
             .apply()
 
-        context.stopService(Intent(context, TimerService::class.java))
+        TimerNotification.cancel(context)
 
         MainActivity.notifyStopRequested()
     }

@@ -1,7 +1,6 @@
 package pl.timedock.timedock
 
 import android.Manifest
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Handler
@@ -33,40 +32,39 @@ class MainActivity : FlutterActivity() {
         )
         channel = ch
         ch.setMethodCallHandler { call, result ->
-            when (call.method) {
-                "start" -> {
-                    requestNotificationPermissionIfNeeded()
-                    val start = (call.argument<Number>("startMillis"))?.toLong()
-                        ?: System.currentTimeMillis()
-                    val title = call.argument<String>("title") ?: "TimeDock"
-                    val intent = Intent(this, TimerService::class.java)
-                        .setAction(TimerService.ACTION_START)
-                        .putExtra(TimerService.EXTRA_START_MILLIS, start)
-                        .putExtra(TimerService.EXTRA_TITLE, title)
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        startForegroundService(intent)
-                    } else {
-                        startService(intent)
-                    }
-                    result.success(null)
-                }
-                "stop" -> {
-                    stopService(Intent(this, TimerService::class.java))
-                    result.success(null)
-                }
-                "takePendingStop" -> {
-                    // Read + clear natively to bypass the Dart-side prefs cache.
-                    val prefs = getSharedPreferences(
-                        TimerStopReceiver.PREFS_FILE, MODE_PRIVATE)
-                    val value = prefs.getLong(TimerStopReceiver.PENDING_STOP_KEY, -1L)
-                    if (value > 0) {
-                        prefs.edit().remove(TimerStopReceiver.PENDING_STOP_KEY).apply()
-                        result.success(value)
-                    } else {
+            try {
+                when (call.method) {
+                    "start" -> {
+                        requestNotificationPermissionIfNeeded()
+                        val start = (call.argument<Number>("startMillis"))?.toLong()
+                            ?: System.currentTimeMillis()
+                        val title = call.argument<String>("title") ?: "TimeDock"
+                        TimerNotification.show(this, title, start)
                         result.success(null)
                     }
+                    "stop" -> {
+                        TimerNotification.cancel(this)
+                        result.success(null)
+                    }
+                    "takePendingStop" -> {
+                        // Read + clear natively to bypass the Dart prefs cache.
+                        val prefs = getSharedPreferences(
+                            TimerStopReceiver.PREFS_FILE, MODE_PRIVATE)
+                        val value =
+                            prefs.getLong(TimerStopReceiver.PENDING_STOP_KEY, -1L)
+                        if (value > 0) {
+                            prefs.edit()
+                                .remove(TimerStopReceiver.PENDING_STOP_KEY)
+                                .apply()
+                            result.success(value)
+                        } else {
+                            result.success(null)
+                        }
+                    }
+                    else -> result.notImplemented()
                 }
-                else -> result.notImplemented()
+            } catch (e: Exception) {
+                result.error("timer_service", e.message, null)
             }
         }
     }

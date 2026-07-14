@@ -34,10 +34,29 @@ class _TimeDockAppState extends ConsumerState<TimeDockApp>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // If STOP was pressed on the notification while the app was frozen, close
-    // the session at the recorded instant as soon as we come back.
+    // the session at the recorded instant as soon as we come back; then
+    // re-post the notification for a still-running session (the user may have
+    // swiped it away — plain ongoing notifications are dismissable on 14+).
     if (state == AppLifecycleState.resumed) {
       final container = ProviderScope.containerOf(context, listen: false);
-      applyPendingStop(container);
+      applyPendingStop(container).then((_) => _resyncNotification());
+    }
+  }
+
+  Future<void> _resyncNotification() async {
+    final session = ref.read(activeSessionProvider).valueOrNull;
+    if (session == null) return;
+    final label = await ref.read(contextLabelProvider(SessionContext(
+      workspaceId: session.workspaceId,
+      projectId: session.projectId,
+      subProjectId: session.subProjectId,
+      taskId: session.taskId,
+    )).future);
+    final current = ref.read(activeSessionProvider).valueOrNull;
+    if (current?.id == session.id) {
+      await ref
+          .read(timerForegroundServiceProvider)
+          .show(session, label?.path ?? '');
     }
   }
 

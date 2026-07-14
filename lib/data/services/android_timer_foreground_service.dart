@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import '../../domain/entities/time_session.dart';
@@ -25,15 +26,26 @@ class AndroidTimerForegroundService implements TimerForegroundService {
   final void Function() onStopRequested;
 
   @override
-  Future<void> show(TimeSession session, String contextLabel) {
-    return _channel.invokeMethod<void>('start', {
-      'startMillis': session.startUtc.millisecondsSinceEpoch,
-      'title': contextLabel.isEmpty ? 'TimeDock — pomiar' : contextLabel,
-    });
+  Future<void> show(TimeSession session, String contextLabel) async {
+    try {
+      await _channel.invokeMethod<void>('start', {
+        'startMillis': session.startUtc.millisecondsSinceEpoch,
+        'title': contextLabel.isEmpty ? 'TimeDock — pomiar' : contextLabel,
+      });
+    } on PlatformException catch (e) {
+      // The notification is a convenience surface; never break the timer.
+      debugPrint('Timer notification failed: ${e.code} ${e.message}');
+    }
   }
 
   @override
-  Future<void> hide() => _channel.invokeMethod<void>('stop');
+  Future<void> hide() async {
+    try {
+      await _channel.invokeMethod<void>('stop');
+    } on PlatformException catch (e) {
+      debugPrint('Timer notification cancel failed: ${e.code} ${e.message}');
+    }
+  }
 
   @override
   Future<DateTime?> takePendingStop() async {

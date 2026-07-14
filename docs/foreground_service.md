@@ -1,16 +1,18 @@
-# Foreground service — notatka wdrożeniowa (etap 3)
+# Powiadomienie timera — notatka wdrożeniowa
 
-> STATUS: zaimplementowane i zweryfikowane na urządzeniu (flutter_foreground_task).
-> Powiadomienie z żywym licznikiem i przyciskiem STOP działa; STOP z powiadomienia
-> jest mostkowany do głównego izolatu, który zatrzymuje timer przez bazę
-> (strumienie Riverpod aktualizują się normalnie).
->
-> Przypomnienie o zapomnianym timerze: ZROBIONE — izolat serwisu, po przekroczeniu
-> progu z ustawień, pokazuje jednorazowy heads-up (flutter_local_notifications,
-> osobny kanał). Wymaga desugaringu (dodane w android/app/build.gradle.kts).
->
-> Implementacja: `lib/data/services/android_timer_foreground_service.dart`,
-> wpięcie w `main.dart` i `app.dart` (WithForegroundTask), manifest.
+> STATUS: wersja 3 — bez foreground service. Powiadomienie z licznikiem jest
+> zwykłym, przypiętym powiadomieniem systemowym publikowanym bezpośrednio
+> (TimerNotification.kt): czas renderuje chronometr systemowy
+> (setUsesChronometer+setWhen), więc tyka bez żadnego procesu i przeżywa
+> nawet śmierć aplikacji — odporne na Doze i OEM-y (ColorOS ubijał FGS,
+> stąd zmiana architektury). STOP: TimerStopReceiver zapisuje dokładny
+> moment naciśnięcia (pending stop), chowa powiadomienie i budzi Dart;
+> pending stop jest aplikowany przy starcie/wznowieniu aplikacji
+> (TimerService.stopAt), więc czas sesji się nie przekłamuje.
+> Przypomnienie o zapomnianym timerze: alarm systemowy
+> (zonedSchedule exactAllowWhileIdle) planowany przy starcie sesji.
+> Uwaga: na Androidzie 14+ użytkownik może zsunąć przypięte powiadomienie —
+> przy powrocie do aplikacji jest ono ponownie publikowane.
 
 
 Warstwa Dart timera jest kompletna i nie zależy od żywego procesu:
