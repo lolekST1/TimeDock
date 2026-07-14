@@ -1,10 +1,14 @@
 # Foreground service — notatka wdrożeniowa (etap 3)
 
-> STATUS: zaimplementowane (flutter_foreground_task). Powiadomienie z żywym
-> licznikiem i przyciskiem STOP działa; STOP z powiadomienia jest mostkowany do
-> głównego izolatu, który zatrzymuje timer przez bazę (strumienie Riverpod
-> aktualizują się normalnie). Pozostaje: zaplanowane przypomnienie o zapomnianym
-> timerze jako osobna notyfikacja (poniżej) oraz weryfikacja na urządzeniu.
+> STATUS: zaimplementowane i zweryfikowane na urządzeniu (flutter_foreground_task).
+> Powiadomienie z żywym licznikiem i przyciskiem STOP działa; STOP z powiadomienia
+> jest mostkowany do głównego izolatu, który zatrzymuje timer przez bazę
+> (strumienie Riverpod aktualizują się normalnie).
+>
+> Przypomnienie o zapomnianym timerze: ZROBIONE — izolat serwisu, po przekroczeniu
+> progu z ustawień, pokazuje jednorazowy heads-up (flutter_local_notifications,
+> osobny kanał). Wymaga desugaringu (dodane w android/app/build.gradle.kts).
+>
 > Implementacja: `lib/data/services/android_timer_foreground_service.dart`,
 > wpięcie w `main.dart` i `app.dart` (WithForegroundTask), manifest.
 

@@ -1,4 +1,6 @@
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../domain/entities/time_session.dart';
 import '../../domain/services/timer_foreground_service.dart';
@@ -89,10 +91,21 @@ void startTimerCallback() {
 }
 
 /// Runs in the service isolate: renders the live counter into the ongoing
-/// notification and forwards the STOP button to the main isolate.
+/// notification, fires the forgotten-timer reminder, and forwards the STOP
+/// button to the main isolate.
 class TimerTaskHandler extends TaskHandler {
+  static const _reminderChannelId = 'timedock_reminder';
+  static const _reminderNotificationId = 1001;
+
+  final FlutterLocalNotificationsPlugin _localNotifications =
+      FlutterLocalNotificationsPlugin();
+
   int _startMillis = DateTime.now().millisecondsSinceEpoch;
   String _label = '';
+
+  bool _reminderEnabled = true;
+  int _reminderThresholdMillis = const Duration(hours: 4).inMilliseconds;
+  bool _reminderShown = false;
 
   @override
   Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
@@ -100,14 +113,45 @@ class TimerTaskHandler extends TaskHandler {
         await FlutterForegroundTask.getData<int>(key: 'startMillis') ??
             _startMillis;
     _label = await FlutterForegroundTask.getData<String>(key: 'label') ?? '';
+    await _initLocalNotifications();
+    await _loadReminderSettings();
     _render();
+  }
+
+  Future<void> _initLocalNotifications() async {
+    const settings = InitializationSettings(
+      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+    );
+    await _localNotifications.initialize(settings);
+    await _localNotifications
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(const AndroidNotificationChannel(
+          _reminderChannelId,
+          'Przypomnienia',
+          description: 'Ostrzeżenie o długo działającym timerze',
+          importance: Importance.high,
+        ));
+  }
+
+  /// Reads the user's forgotten-timer settings straight from SharedPreferences
+  /// (written by the main isolate's settings controller).
+  Future<void> _loadReminderSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    _reminderEnabled = prefs.getBool('forgotten_timer_enabled') ?? true;
+    final hours = prefs.getInt('forgotten_timer_threshold_hours') ?? 4;
+    _reminderThresholdMillis = Duration(hours: hours).inMilliseconds;
   }
 
   @override
   void onReceiveData(Object data) {
     if (data is Map) {
       final start = data['startMillis'];
-      if (start is num) _startMillis = start.toInt();
+      if (start is num && start.toInt() != _startMillis) {
+        _startMillis = start.toInt();
+        _reminderShown = false; // new session → reminder can fire again
+      }
       final label = data['label'];
       if (label is String) _label = label;
       _render();
@@ -115,13 +159,39 @@ class TimerTaskHandler extends TaskHandler {
   }
 
   @override
-  void onRepeatEvent(DateTime timestamp) => _render();
+  void onRepeatEvent(DateTime timestamp) {
+    _render();
+    _maybeRemind();
+  }
 
   void _render() {
     final elapsed = DateTime.now().millisecondsSinceEpoch - _startMillis;
     FlutterForegroundTask.updateService(
       notificationTitle: _label.isEmpty ? 'TimeDock — pomiar' : _label,
       notificationText: _formatElapsed(elapsed < 0 ? 0 : elapsed),
+    );
+  }
+
+  void _maybeRemind() {
+    if (!_reminderEnabled || _reminderShown) return;
+    final elapsed = DateTime.now().millisecondsSinceEpoch - _startMillis;
+    if (elapsed < _reminderThresholdMillis) return;
+    _reminderShown = true;
+    final label = _label.isEmpty ? 'bieżącym projektem' : _label;
+    _localNotifications.show(
+      _reminderNotificationId,
+      'Nadal pracujesz?',
+      'Timer działa już ${_formatElapsed(elapsed)} nad $label. '
+          'Otwórz TimeDock, aby zatrzymać lub przyciąć sesję.',
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          _reminderChannelId,
+          'Przypomnienia',
+          channelDescription: 'Ostrzeżenie o długo działającym timerze',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+      ),
     );
   }
 
@@ -134,7 +204,9 @@ class TimerTaskHandler extends TaskHandler {
   void onNotificationPressed() => FlutterForegroundTask.launchApp();
 
   @override
-  Future<void> onDestroy(DateTime timestamp) async {}
+  Future<void> onDestroy(DateTime timestamp) async {
+    await _localNotifications.cancel(_reminderNotificationId);
+  }
 }
 
 String _formatElapsed(int millis) {
