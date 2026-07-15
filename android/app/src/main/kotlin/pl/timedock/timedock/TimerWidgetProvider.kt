@@ -49,8 +49,8 @@ class TimerWidgetProvider : AppWidgetProvider() {
             views.setOnClickPendingIntent(R.id.widget_root, openPending)
 
             if (active) {
-                views.setTextViewText(R.id.widget_title, TimerState.title(context))
-                views.setViewVisibility(R.id.widget_hint, View.GONE)
+                val runningTitle = TimerState.title(context)
+                views.setTextViewText(R.id.widget_title, runningTitle)
                 views.setViewVisibility(R.id.widget_chrono, View.VISIBLE)
                 views.setViewVisibility(R.id.widget_stop, View.VISIBLE)
                 views.setTextColor(R.id.widget_stop, TILE_TEXT_COLOR)
@@ -65,11 +65,20 @@ class TimerWidgetProvider : AppWidgetProvider() {
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
                 views.setOnClickPendingIntent(R.id.widget_stop, stopPending)
+
+                // Other recent contexts to switch to (tap = switch, not restart).
+                bindRecentTiles(
+                    context, views,
+                    maxCount = 2, excludeTitle = runningTitle, showHintIfEmpty = false
+                )
             } else {
                 views.setTextViewText(R.id.widget_title, "TimeDock")
                 views.setViewVisibility(R.id.widget_chrono, View.GONE)
                 views.setViewVisibility(R.id.widget_stop, View.GONE)
-                bindRecentTiles(context, views)
+                bindRecentTiles(
+                    context, views,
+                    maxCount = 3, excludeTitle = null, showHintIfEmpty = true
+                )
             }
             return views
         }
@@ -81,35 +90,55 @@ class TimerWidgetProvider : AppWidgetProvider() {
         // Dark blue, set in code because some launchers ignore the layout colour.
         private val TILE_TEXT_COLOR = 0xFF0D47A1.toInt()
 
-        /** Fill the idle state with one-tap start tiles for recent contexts. */
-        private fun bindRecentTiles(context: Context, views: RemoteViews) {
+        /**
+         * Bind up to [maxCount] recent contexts as one-tap tiles, skipping
+         * [excludeTitle] (the running context). The tile's click carries the
+         * ORIGINAL index into the recent list so the receiver resolves the right
+         * context even when some are skipped.
+         */
+        private fun bindRecentTiles(
+            context: Context,
+            views: RemoteViews,
+            maxCount: Int,
+            excludeTitle: String?,
+            showHintIfEmpty: Boolean
+        ) {
             val titles = readRecentTitles(context)
-            if (titles.isEmpty()) {
-                views.setViewVisibility(R.id.widget_recent, View.GONE)
-                views.setViewVisibility(R.id.widget_hint, View.VISIBLE)
-                views.setTextViewText(R.id.widget_hint, "Dotknij, aby rozpocząć")
-                return
-            }
-            views.setViewVisibility(R.id.widget_hint, View.GONE)
-            views.setViewVisibility(R.id.widget_recent, View.VISIBLE)
-            for (i in tileIds.indices) {
-                if (i < titles.size) {
-                    val label = titles[i].ifBlank { "(bez nazwy)" }
-                    views.setViewVisibility(tileIds[i], View.VISIBLE)
-                    views.setTextViewText(tileIds[i], "▶  $label")
-                    // Force a dark text colour: some launchers (ColorOS) default
-                    // RemoteViews text to white, which is invisible on the white
-                    // tile and ignores the layout's android:textColor.
-                    views.setTextColor(tileIds[i], TILE_TEXT_COLOR)
-                    val startIntent = Intent(context, WidgetStartReceiver::class.java)
-                        .putExtra(WidgetStartReceiver.EXTRA_INDEX, i)
-                    val pending = PendingIntent.getBroadcast(
+            var slot = 0
+            for (i in titles.indices) {
+                if (slot >= maxCount || slot >= tileIds.size) break
+                if (excludeTitle != null && titles[i] == excludeTitle) continue
+                val tileId = tileIds[slot]
+                views.setViewVisibility(tileId, View.VISIBLE)
+                views.setTextViewText(tileId, "▶  " + titles[i].ifBlank { "(bez nazwy)" })
+                // Force a dark text colour: some launchers (ColorOS) default
+                // RemoteViews text to white, which is invisible on the white tile.
+                views.setTextColor(tileId, TILE_TEXT_COLOR)
+                val startIntent = Intent(context, WidgetStartReceiver::class.java)
+                    .putExtra(WidgetStartReceiver.EXTRA_INDEX, i)
+                views.setOnClickPendingIntent(
+                    tileId,
+                    PendingIntent.getBroadcast(
                         context, 100 + i, startIntent,
                         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                     )
-                    views.setOnClickPendingIntent(tileIds[i], pending)
-                } else {
-                    views.setViewVisibility(tileIds[i], View.GONE)
+                )
+                slot++
+            }
+            for (s in slot until tileIds.size) {
+                views.setViewVisibility(tileIds[s], View.GONE)
+            }
+            if (slot > 0) {
+                views.setViewVisibility(R.id.widget_recent, View.VISIBLE)
+                views.setViewVisibility(R.id.widget_hint, View.GONE)
+            } else {
+                views.setViewVisibility(R.id.widget_recent, View.GONE)
+                views.setViewVisibility(
+                    R.id.widget_hint,
+                    if (showHintIfEmpty) View.VISIBLE else View.GONE
+                )
+                if (showHintIfEmpty) {
+                    views.setTextViewText(R.id.widget_hint, "Dotknij, aby rozpocząć")
                 }
             }
         }

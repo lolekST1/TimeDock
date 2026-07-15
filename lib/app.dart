@@ -10,7 +10,7 @@ import 'features/app_state/forgotten_reminder.dart';
 import 'features/app_state/widget_sync.dart';
 import 'features/home/home_screen.dart';
 import 'features/settings/settings_controller.dart';
-import 'main.dart' show applyPendingStart, applyPendingStop;
+import 'main.dart' show reconcilePendingActions;
 
 class TimeDockApp extends ConsumerStatefulWidget {
   const TimeDockApp({super.key});
@@ -41,9 +41,7 @@ class _TimeDockAppState extends ConsumerState<TimeDockApp>
     // swiped it away — plain ongoing notifications are dismissable on 14+).
     if (state == AppLifecycleState.resumed) {
       final container = ProviderScope.containerOf(context, listen: false);
-      applyPendingStart(container)
-          .then((_) => applyPendingStop(container))
-          .then((_) => _resyncNotification());
+      reconcilePendingActions(container).then((_) => _resyncNotification());
     }
   }
 
