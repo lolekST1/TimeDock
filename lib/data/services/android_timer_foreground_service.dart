@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import '../../domain/entities/time_session.dart';
+import '../../domain/repositories/session_repository.dart';
 import '../../domain/services/timer_foreground_service.dart';
 
 /// Android implementation of [TimerForegroundService] talking to the app's
@@ -17,9 +20,17 @@ import '../../domain/services/timer_foreground_service.dart';
 /// (pending stop) and the Dart side is poked if alive; on next launch/resume
 /// [takePendingStop] closes the session at that recorded moment.
 class AndroidTimerForegroundService implements TimerForegroundService {
-  AndroidTimerForegroundService({required this.onStopRequested}) {
+  AndroidTimerForegroundService({
+    required this.onStopRequested,
+    required this.onStartRequested,
+  }) {
     _channel.setMethodCallHandler((call) async {
-      if (call.method == 'stopRequested') onStopRequested();
+      switch (call.method) {
+        case 'stopRequested':
+          onStopRequested();
+        case 'startRequested':
+          onStartRequested();
+      }
     });
   }
 
@@ -27,6 +38,10 @@ class AndroidTimerForegroundService implements TimerForegroundService {
 
   /// Invoked when STOP is pressed while the Dart side is alive.
   final void Function() onStopRequested;
+
+  /// Invoked when a start is triggered from the widget/tile while the Dart side
+  /// is alive, so the pending start is applied to the database immediately.
+  final void Function() onStartRequested;
 
   @override
   Future<void> show(TimeSession session, String contextLabel) async {
@@ -56,5 +71,37 @@ class AndroidTimerForegroundService implements TimerForegroundService {
     return millis == null
         ? null
         : DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true);
+  }
+
+  @override
+  Future<PendingStart?> takePendingStart() async {
+    final raw = await _channel.invokeMethod<String>('takePendingStart');
+    if (raw == null) return null;
+    try {
+      final map = jsonDecode(raw) as Map<String, dynamic>;
+      final startMillis = (map['startMillis'] as num).toInt();
+      return PendingStart(
+        context: SessionContext(
+          workspaceId: map['workspaceId'] as String,
+          projectId: map['projectId'] as String,
+          subProjectId: map['subProjectId'] as String?,
+          taskId: map['taskId'] as String?,
+        ),
+        startUtc: DateTime.fromMillisecondsSinceEpoch(startMillis, isUtc: true),
+      );
+    } on FormatException catch (e) {
+      debugPrint('Bad pending start payload: $e');
+      return null;
+    }
+  }
+
+  @override
+  Future<void> updateWidget(String recentContextsJson) async {
+    try {
+      await _channel.invokeMethod<void>(
+          'updateWidget', {'contexts': recentContextsJson});
+    } on PlatformException catch (e) {
+      debugPrint('Widget update failed: ${e.code} ${e.message}');
+    }
   }
 }

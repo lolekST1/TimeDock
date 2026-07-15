@@ -5,7 +5,6 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import android.service.quicksettings.TileService
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
@@ -21,6 +20,13 @@ class MainActivity : FlutterActivity() {
         fun notifyStopRequested() {
             Handler(Looper.getMainLooper()).post {
                 channel?.invokeMethod("stopRequested", null)
+            }
+        }
+
+        /** Called from [WidgetStartReceiver]; no-op when the engine is gone. */
+        fun notifyStartRequested() {
+            Handler(Looper.getMainLooper()).post {
+                channel?.invokeMethod("startRequested", null)
             }
         }
     }
@@ -73,6 +79,28 @@ class MainActivity : FlutterActivity() {
                             result.success(null)
                         }
                     }
+                    "takePendingStart" -> {
+                        val prefs = getSharedPreferences(
+                            TimerStopReceiver.PREFS_FILE, MODE_PRIVATE)
+                        val value =
+                            prefs.getString(WidgetStartReceiver.PENDING_START_KEY, null)
+                        if (value != null) {
+                            prefs.edit()
+                                .remove(WidgetStartReceiver.PENDING_START_KEY)
+                                .apply()
+                        }
+                        result.success(value)
+                    }
+                    "updateWidget" -> {
+                        val json = call.argument<String>("contexts")
+                        getSharedPreferences(
+                            TimerStopReceiver.PREFS_FILE, MODE_PRIVATE)
+                            .edit()
+                            .putString(WidgetStartReceiver.RECENT_KEY, json)
+                            .apply()
+                        TimerWidgetProvider.refresh(this)
+                        result.success(null)
+                    }
                     else -> result.notImplemented()
                 }
             } catch (e: Exception) {
@@ -81,17 +109,7 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    /** Nudge the Quick Settings tile to re-read the timer state. */
-    private fun requestTileListeningUpdate() {
-        try {
-            TileService.requestListeningState(
-                this,
-                android.content.ComponentName(this, TimerTileService::class.java)
-            )
-        } catch (_: Exception) {
-            // Tile not added / not available: nothing to refresh.
-        }
-    }
+    private fun requestTileListeningUpdate() = TimerTileService.requestUpdate(this)
 
     private fun requestNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&

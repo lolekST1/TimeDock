@@ -14,14 +14,26 @@ których operują, są już gotowe.
 
 ## Stan
 
-1. **Widget ekranu głównego** (`TimerWidgetProvider`, RemoteViews) — ZROBIONE
-   w wersji podstawowej: pokazuje stan aktywnego timera (kontekst + natywny
-   chronometr) z przyciskiem STOP, a w stanie bezczynności otwiera aplikację.
-   Stan czytany z `TimerState` (współdzielone prefs), odświeżany przy
-   starcie/stopie. TODO: kafelki ostatnich kontekstów z „tap → start bez
-   otwierania aplikacji" (wymaga mostka `home_widget` + headless Dart
-   entrypointu piszącego do bazy Drift).
-2. **Kafelek Quick Settings** (`TimerTileService`) — ZROBIONE: aktywny gdy
-   timer działa (tap = STOP), bezczynny gdy nie (tap = otwórz aplikację).
-3. **Wspólny punkt wejścia** (headless Dart start z widgetu/kafla) — TODO;
-   dopóki go nie ma, start spoza aplikacji otwiera UI do wyboru kontekstu.
+1. **Widget ekranu głównego** (`TimerWidgetProvider`, RemoteViews) — ZROBIONE:
+   - aktywny timer: kontekst + natywny chronometr + STOP,
+   - bezczynny: kafelki do 3 ostatnich kontekstów → **start jednym dotknięciem
+     bez otwierania aplikacji** (tap otwiera apkę tylko gdy brak historii).
+2. **Kafelek Quick Settings** (`TimerTileService`) — ZROBIONE: tap = STOP gdy
+   działa; gdy nie — wznawia ostatni kontekst bez otwierania apki.
+3. **Start bez ciężkiego headless silnika** — zamiast tego wzorzec „pending
+   start" (analogiczny do „pending stop"): `WidgetStartReceiver` zapisuje
+   natywnie zamiar (kontekst + moment) i od razu pokazuje zegar/FGS/aktualizuje
+   widget; Dart tworzy sesję w bazie (źródło prawdy) przy najbliższym pchnięciu
+   (`startRequested`, gdy proces żyje) albo przy starcie/wznowieniu
+   (`applyPendingStart`). Lista ostatnich kontekstów jest wypychana do natywnej
+   pamięci przez `widgetSyncProvider` (`updateWidget`).
+
+## Znane ograniczenie
+
+Jeśli timer wystartuje z widgetu/kafla, gdy aplikacja jest całkowicie ubita,
+przypomnienie o zapomnianym timerze (tick w izolacie Dart) uzbroi się dopiero
+po pierwszym otwarciu aplikacji — natywny zegar/FGS działają od razu, ale bez
+żywego Darta nie ma ticku ani zaplanowanego alarmu. Docelowe rozwiązanie:
+przenieść sprawdzanie progu do natywnego `TimerService` (postDelayed/Handler),
+co uniezależni przypomnienie od izolaty i pozwoli zdjąć wakelock. Na razie
+odłożone, żeby nie ruszać działającego mechanizmu.

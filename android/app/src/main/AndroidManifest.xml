@@ -80,6 +80,11 @@
             android:name=".TimerStopReceiver"
             android:exported="false" />
 
+        <!-- One-tap start of a recent context from the widget / tile. -->
+        <receiver
+            android:name=".WidgetStartReceiver"
+            android:exported="false" />
+
         <!-- Home-screen widget: timer state (chronometer + STOP) / start. -->
         <receiver
             android:name=".TimerWidgetProvider"

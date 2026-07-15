@@ -1,6 +1,8 @@
 package pl.timedock.timedock
 
 import android.app.PendingIntent
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.Icon
 import android.os.Build
@@ -13,10 +15,25 @@ import android.service.quicksettings.TileService
  * - When a timer is running: the tile is ACTIVE and shows the current context;
  *   tapping it stops the timer (same path as the notification's STOP, so it
  *   works even if the app is dead).
- * - When idle: the tile is INACTIVE; tapping opens the app so the user can pick
- *   a context and start (starting needs the UI, so we launch rather than guess).
+ * - When idle: the tile is INACTIVE; tapping resumes the most recent context
+ *   without opening the app (via [WidgetStartReceiver]), or opens the app to
+ *   pick one when no recent context is known yet.
  */
 class TimerTileService : TileService() {
+
+    companion object {
+        /** Ask the Quick Settings tile to re-read the timer state. */
+        fun requestUpdate(context: Context) {
+            try {
+                TileService.requestListeningState(
+                    context,
+                    ComponentName(context, TimerTileService::class.java)
+                )
+            } catch (_: Exception) {
+                // Tile not added / not available.
+            }
+        }
+    }
 
     override fun onStartListening() {
         super.onStartListening()
@@ -31,9 +48,22 @@ class TimerTileService : TileService() {
             sendBroadcast(Intent(this, TimerStopReceiver::class.java))
             TimerService.stop(this)
             refresh()
+        } else if (hasRecentContext()) {
+            // Resume the most recent context without opening the app.
+            sendBroadcast(
+                Intent(this, WidgetStartReceiver::class.java)
+                    .putExtra(WidgetStartReceiver.EXTRA_INDEX, 0)
+            )
         } else {
             openApp()
         }
+    }
+
+    private fun hasRecentContext(): Boolean {
+        val prefs = getSharedPreferences(
+            WidgetStartReceiver.PREFS_FILE, Context.MODE_PRIVATE)
+        val json = prefs.getString(WidgetStartReceiver.RECENT_KEY, null)
+        return !json.isNullOrEmpty() && json != "[]"
     }
 
     private fun refresh() {

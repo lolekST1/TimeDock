@@ -28,6 +28,8 @@ Future<void> main() async {
       AndroidTimerForegroundService(
         // STOP on the notification while the app is alive.
         onStopRequested: () => container.read(timerServiceProvider).stop(),
+        // Start from the widget/tile while the app is alive.
+        onStartRequested: () => applyPendingStart(container),
       ),
     ));
     overrides.add(reminderSchedulerProvider
@@ -36,6 +38,7 @@ Future<void> main() async {
 
   container = ProviderContainer(overrides: overrides);
   await container.read(seederProvider).seedIfEmpty();
+  await applyPendingStart(container);
   await applyPendingStop(container);
 
   runApp(
@@ -44,6 +47,19 @@ Future<void> main() async {
       child: const TimeDockApp(),
     ),
   );
+}
+
+/// If a timer was started from the widget/tile while the app was frozen or
+/// dead, create the session at the exact recorded instant. The native side
+/// already showed the notification/foreground service; this makes the database
+/// (the source of truth) match.
+Future<void> applyPendingStart(ProviderContainer container) async {
+  final pending =
+      await container.read(timerForegroundServiceProvider).takePendingStart();
+  if (pending == null) return;
+  await container
+      .read(timerServiceProvider)
+      .startAt(pending.context, pending.startUtc);
 }
 
 /// If STOP was pressed on the notification while the app was frozen or dead,
