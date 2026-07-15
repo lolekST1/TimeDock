@@ -88,6 +88,7 @@ class AndroidTimerForegroundService implements TimerForegroundService {
           taskId: map['taskId'] as String?,
         ),
         startUtc: DateTime.fromMillisecondsSinceEpoch(startMillis, isUtc: true),
+        switchOnly: map['mode'] == 'switch',
       );
     } on FormatException catch (e) {
       debugPrint('Bad pending start payload: $e');

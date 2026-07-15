@@ -57,9 +57,14 @@ Future<void> applyPendingStart(ProviderContainer container) async {
   final pending =
       await container.read(timerForegroundServiceProvider).takePendingStart();
   if (pending == null) return;
-  await container
-      .read(timerServiceProvider)
-      .startAt(pending.context, pending.startUtc);
+  final timer = container.read(timerServiceProvider);
+  if (pending.switchOnly) {
+    // A timer was running: switch its context in place, keeping the clock.
+    final switched = await timer.switchContext(pending.context);
+    if (switched != null) return;
+    // Nothing was running after all — fall through to a normal start.
+  }
+  await timer.startAt(pending.context, pending.startUtc);
 }
 
 /// If STOP was pressed on the notification while the app was frozen or dead,

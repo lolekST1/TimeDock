@@ -7,14 +7,20 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /**
- * Starts a timer for a recent context tapped on the home-screen widget or the
- * Quick Settings tile, without opening the app.
+ * Handles a recent context tapped on the home-screen widget, without opening
+ * the app.
  *
- * Mirrors the pending-stop pattern: the exact context and instant are recorded
- * natively ([PENDING_START_KEY]) and the visible surfaces (clock notification,
- * foreground service, widget) are updated immediately; the Dart side creates
- * the database session — the source of truth — as soon as it is poked (app
- * alive) or on the next launch/resume ([MainActivity] / applyPendingStart).
+ * - No timer running: starts a new session for the context.
+ * - A timer already running: switches the running timer's context in place,
+ *   keeping the elapsed time (the domain's switchContext), rather than
+ *   restarting the clock.
+ *
+ * Mirrors the pending-stop pattern: the intent (context + instant + mode) is
+ * recorded natively ([PENDING_START_KEY]) and the visible surfaces (clock
+ * notification, foreground service, widget) are updated immediately; the Dart
+ * side applies it to the database — the source of truth — as soon as it is
+ * poked (app alive) or on the next launch/resume ([MainActivity] /
+ * applyPendingStart).
  */
 class WidgetStartReceiver : BroadcastReceiver() {
 
@@ -37,7 +43,12 @@ class WidgetStartReceiver : BroadcastReceiver() {
             return
         }
 
-        val startMillis = System.currentTimeMillis()
+        // Switch in place if a timer is already running: keep the original
+        // start so the clock does not reset, just re-label it.
+        val switching = TimerState.isActive(context)
+        val startMillis =
+            if (switching) TimerState.startMillis(context)
+            else System.currentTimeMillis()
         val title = item.optString("title", "TimeDock")
 
         val pending = JSONObject().apply {
@@ -48,6 +59,7 @@ class WidgetStartReceiver : BroadcastReceiver() {
             }
             if (!item.isNull("taskId")) put("taskId", item.getString("taskId"))
             put("startMillis", startMillis)
+            put("mode", if (switching) "switch" else "start")
         }
         prefs.edit().putString(PENDING_START_KEY, pending.toString()).apply()
 
