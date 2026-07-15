@@ -15,6 +15,10 @@ abstract interface class ReminderScheduler {
   });
 
   Future<void> cancel();
+
+  /// Ensures exact alarms are permitted (opens system settings if needed);
+  /// returns whether they are now available. See [AndroidReminderScheduler].
+  Future<bool> ensureExactAlarms();
 }
 
 class NoopReminderScheduler implements ReminderScheduler {
@@ -29,6 +33,9 @@ class NoopReminderScheduler implements ReminderScheduler {
 
   @override
   Future<void> cancel() async {}
+
+  @override
+  Future<bool> ensureExactAlarms() async => true;
 }
 
 /// Android implementation: a SYSTEM alarm (exact-allow-while-idle), so the
@@ -43,6 +50,11 @@ class AndroidReminderScheduler implements ReminderScheduler {
 
   final FlutterLocalNotificationsPlugin _plugin;
   bool _initialized = false;
+  bool _askedExactAlarms = false;
+
+  AndroidFlutterLocalNotificationsPlugin? get _android =>
+      _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
 
   Future<void> _ensureInitialized() async {
     if (_initialized) return;
@@ -50,16 +62,30 @@ class AndroidReminderScheduler implements ReminderScheduler {
       android: AndroidInitializationSettings('@mipmap/ic_launcher'),
     );
     await _plugin.initialize(settings);
-    await _plugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(const AndroidNotificationChannel(
-          _channelId,
-          'Przypomnienia',
-          description: 'Ostrzeżenie o długo działającym timerze',
-          importance: Importance.high,
-        ));
+    await _android?.createNotificationChannel(const AndroidNotificationChannel(
+      _channelId,
+      'Przypomnienia',
+      description: 'Ostrzeżenie o długo działającym timerze',
+      importance: Importance.high,
+    ));
     _initialized = true;
+  }
+
+  /// Ensures exact alarms are permitted; without them zonedSchedule falls back
+  /// to inexact, which OEMs (ColorOS etc.) defer until the device wakes — so
+  /// the reminder only shows when the app is reopened. Opens the system
+  /// "Alarms & reminders" screen once if needed.
+  @override
+  Future<bool> ensureExactAlarms() async {
+    await _ensureInitialized();
+    final canExact = await _android?.canScheduleExactNotifications() ?? true;
+    if (canExact) return true;
+    if (!_askedExactAlarms) {
+      _askedExactAlarms = true;
+      await _android?.requestExactAlarmsPermission();
+      return await _android?.canScheduleExactNotifications() ?? false;
+    }
+    return false;
   }
 
   /// (Re)schedules the reminder for [session] according to [settings];
@@ -77,6 +103,10 @@ class AndroidReminderScheduler implements ReminderScheduler {
 
     final fireAtUtc = session.startUtc.add(settings.threshold);
     if (!fireAtUtc.isAfter(DateTime.now().toUtc())) return;
+
+    // Prompt for exact-alarm permission the first time we schedule, so the
+    // reminder fires in Doze instead of being deferred until the app wakes.
+    await ensureExactAlarms();
 
     final label = contextLabel.isEmpty ? 'bieżącym zadaniem' : contextLabel;
     const details = NotificationDetails(

@@ -80,6 +80,15 @@ class SettingsScreen extends ConsumerWidget {
                   : null,
             ),
           ),
+          ListTile(
+            leading: const Icon(Icons.alarm_on_outlined),
+            title: const Text('Powiadomienia w tle'),
+            subtitle: const Text(
+                'Zezwól na dokładne alarmy, aby przypomnienie działało przy '
+                'wygaszonym ekranie (wymagane na Oppo/Xiaomi/Samsung)'),
+            isThreeLine: true,
+            onTap: () => _fixReminderPermissions(context, ref),
+          ),
           const Divider(),
           _SectionTitle('Domyślne eksportu'),
           SwitchListTile(
@@ -140,6 +149,20 @@ class SettingsScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _fixReminderPermissions(
+      BuildContext context, WidgetRef ref) async {
+    final ok = await ref.read(reminderSchedulerProvider).ensureExactAlarms();
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(ok
+            ? 'Dokładne alarmy włączone — przypomnienie zadziała w tle.'
+            : 'Włącz „Alarmy i przypomnienia" oraz autostart aplikacji '
+                'w ustawieniach systemu, aby przypomnienie działało w tle.'),
+      ));
   }
 
   Future<void> _addWorkspace(
