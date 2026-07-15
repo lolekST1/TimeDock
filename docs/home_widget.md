@@ -18,8 +18,8 @@ których operują, są już gotowe.
    - aktywny timer: kontekst + natywny chronometr + STOP,
    - bezczynny: kafelki do 3 ostatnich kontekstów → **start jednym dotknięciem
      bez otwierania aplikacji** (tap otwiera apkę tylko gdy brak historii).
-2. **Kafelek Quick Settings** (`TimerTileService`) — ZROBIONE: tap = STOP gdy
-   działa; gdy nie — wznawia ostatni kontekst bez otwierania apki.
+2. **Kafelek Quick Settings** — USUNIĘTY (niepraktyczny). Start spoza aplikacji
+   idzie tylko przez widget ekranu głównego.
 3. **Start bez ciężkiego headless silnika** — zamiast tego wzorzec „pending
    start" (analogiczny do „pending stop"): `WidgetStartReceiver` zapisuje
    natywnie zamiar (kontekst + moment) i od razu pokazuje zegar/FGS/aktualizuje

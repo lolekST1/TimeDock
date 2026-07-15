@@ -63,18 +63,6 @@
                 android:value="keep_process_unfrozen_so_the_forgotten_timer_reminder_fires" />
         </service>
 
-        <!-- Quick Settings tile: start (opens the app) / stop the timer. -->
-        <service
-            android:name=".TimerTileService"
-            android:icon="@mipmap/ic_launcher"
-            android:label="TimeDock"
-            android:exported="true"
-            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
-            <intent-filter>
-                <action android:name="android.service.quicksettings.action.QS_TILE" />
-            </intent-filter>
-        </service>
-
         <!-- STOP action on the timer notification. -->
         <receiver
             android:name=".TimerStopReceiver"

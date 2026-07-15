@@ -53,6 +53,7 @@ class TimerWidgetProvider : AppWidgetProvider() {
                 views.setViewVisibility(R.id.widget_hint, View.GONE)
                 views.setViewVisibility(R.id.widget_chrono, View.VISIBLE)
                 views.setViewVisibility(R.id.widget_stop, View.VISIBLE)
+                views.setTextColor(R.id.widget_stop, TILE_TEXT_COLOR)
 
                 val elapsed = System.currentTimeMillis() - TimerState.startMillis(context)
                 val base = SystemClock.elapsedRealtime() - elapsed
@@ -77,6 +78,9 @@ class TimerWidgetProvider : AppWidgetProvider() {
             R.id.widget_recent_0, R.id.widget_recent_1, R.id.widget_recent_2
         )
 
+        // Dark blue, set in code because some launchers ignore the layout colour.
+        private val TILE_TEXT_COLOR = 0xFF0D47A1.toInt()
+
         /** Fill the idle state with one-tap start tiles for recent contexts. */
         private fun bindRecentTiles(context: Context, views: RemoteViews) {
             val titles = readRecentTitles(context)
@@ -90,8 +94,13 @@ class TimerWidgetProvider : AppWidgetProvider() {
             views.setViewVisibility(R.id.widget_recent, View.VISIBLE)
             for (i in tileIds.indices) {
                 if (i < titles.size) {
+                    val label = titles[i].ifBlank { "(bez nazwy)" }
                     views.setViewVisibility(tileIds[i], View.VISIBLE)
-                    views.setTextViewText(tileIds[i], titles[i])
+                    views.setTextViewText(tileIds[i], "▶  $label")
+                    // Force a dark text colour: some launchers (ColorOS) default
+                    // RemoteViews text to white, which is invisible on the white
+                    // tile and ignores the layout's android:textColor.
+                    views.setTextColor(tileIds[i], TILE_TEXT_COLOR)
                     val startIntent = Intent(context, WidgetStartReceiver::class.java)
                         .putExtra(WidgetStartReceiver.EXTRA_INDEX, i)
                     val pending = PendingIntent.getBroadcast(

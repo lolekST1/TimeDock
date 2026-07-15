@@ -63,7 +63,6 @@ class WidgetStartReceiver : BroadcastReceiver() {
             // Foreground service start not allowed from here; deferred to launch.
         }
         TimerWidgetProvider.refresh(context)
-        TimerTileService.requestUpdate(context)
 
         // Create the DB session now if the app is alive; else on next launch.
         MainActivity.notifyStartRequested()

@@ -52,7 +52,6 @@ class MainActivity : FlutterActivity() {
                         TimerNotification.show(this, title, start)
                         TimerState.setActive(this, title, start)
                         TimerService.start(this, title, start)
-                        requestTileListeningUpdate()
                         TimerWidgetProvider.refresh(this)
                         result.success(null)
                     }
@@ -60,7 +59,6 @@ class MainActivity : FlutterActivity() {
                         TimerState.setInactive(this)
                         TimerNotification.cancel(this)
                         TimerService.stop(this)
-                        requestTileListeningUpdate()
                         TimerWidgetProvider.refresh(this)
                         result.success(null)
                     }
@@ -108,8 +106,6 @@ class MainActivity : FlutterActivity() {
             }
         }
     }
-
-    private fun requestTileListeningUpdate() = TimerTileService.requestUpdate(this)
 
     private fun requestNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
