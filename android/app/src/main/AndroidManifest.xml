@@ -1,5 +1,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Foreground service runs while a timer is active. Its real job is to
+         keep the app process unfrozen so the forgotten-timer alarm actually
+         fires in the background: OEMs like ColorOS/Oppo otherwise freeze a
+         backgrounded app and defer its alarm until the app is reopened.
+         Declared as specialUse (no Android 15 dataSync 6h/day cap) with a
+         dataSync fallback for API 29-33. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <!-- The service holds a partial wake lock while a timer runs so the
+         in-process reminder check keeps firing with the screen off. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- Exact alarms drive the forgotten-timer reminder so it fires in Doze
          and under aggressive OEM throttling. USE_EXACT_ALARM is auto-granted
          on 13+; SCHEDULE_EXACT_ALARM covers API 31-32. -->
@@ -40,10 +52,38 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
+        <!-- Keeps the process alive while a timer runs (see permissions above)
+             and holds the ongoing chronometer notification. -->
+        <service
+            android:name=".TimerService"
+            android:foregroundServiceType="specialUse|dataSync"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="keep_process_unfrozen_so_the_forgotten_timer_reminder_fires" />
+        </service>
+
         <!-- STOP action on the timer notification. -->
         <receiver
             android:name=".TimerStopReceiver"
             android:exported="false" />
+
+        <!-- One-tap start of a recent context from the widget / tile. -->
+        <receiver
+            android:name=".WidgetStartReceiver"
+            android:exported="false" />
+
+        <!-- Home-screen widget: timer state (chronometer + STOP) / start. -->
+        <receiver
+            android:name=".TimerWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/timer_widget_info" />
+        </receiver>
 
         <!-- flutter_local_notifications: scheduled reminder delivery. -->
         <receiver

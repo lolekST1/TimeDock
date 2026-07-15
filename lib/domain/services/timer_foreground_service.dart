@@ -1,4 +1,15 @@
 import '../entities/time_session.dart';
+import '../repositories/session_repository.dart';
+
+/// A start requested from the home-screen widget while the app was dead: the
+/// chosen [context] and the instant the user tapped. Applied as a fresh start
+/// (any running timer is stopped and saved first).
+class PendingStart {
+  const PendingStart({required this.context, required this.startUtc});
+
+  final SessionContext context;
+  final DateTime startUtc;
+}
 
 /// Platform seam for the always-on timer notification / foreground service.
 ///
@@ -20,6 +31,15 @@ abstract interface class TimerForegroundService {
   /// dead, returns the recorded stop instant (UTC) exactly once, so the
   /// session can be closed at the moment STOP was actually pressed.
   Future<DateTime?> takePendingStop();
+
+  /// If a timer was started from the widget/tile while the app was frozen or
+  /// dead, returns the recorded context + start instant exactly once, so the
+  /// session can be created at the moment the user tapped.
+  Future<PendingStart?> takePendingStart();
+
+  /// Push the recent-context list (JSON, consumed by the native widget) to
+  /// shared storage and re-render the home-screen widget.
+  Future<void> updateWidget(String recentContextsJson);
 }
 
 /// Default no-op used in tests, on unsupported platforms, and until the native
@@ -36,4 +56,10 @@ class NoopTimerForegroundService implements TimerForegroundService {
 
   @override
   Future<DateTime?> takePendingStop() async => null;
+
+  @override
+  Future<PendingStart?> takePendingStart() async => null;
+
+  @override
+  Future<void> updateWidget(String recentContextsJson) async {}
 }

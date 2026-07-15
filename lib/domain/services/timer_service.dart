@@ -28,9 +28,13 @@ class TimerService {
 
   /// Starts a timer for [context], stopping and saving any running session
   /// first. Returns the newly started session. This is the one-tap path.
-  Future<TimeSession> start(SessionContext context) async {
-    final now = _nowUtc();
-    await _stopActiveAt(now);
+  Future<TimeSession> start(SessionContext context) => startAt(context, _nowUtc());
+
+  /// Starts a timer for [context] at a specific instant — used when start was
+  /// triggered from the home-screen widget or Quick Settings tile while the app
+  /// was frozen/dead and the exact moment was recorded natively (pending start).
+  Future<TimeSession> startAt(SessionContext context, DateTime startUtc) async {
+    await _stopActiveAt(startUtc);
 
     final session = TimeSession(
       id: _uuid.v4(),
@@ -38,10 +42,10 @@ class TimerService {
       projectId: context.projectId,
       subProjectId: context.subProjectId,
       taskId: context.taskId,
-      startUtc: now,
-      startOffsetMinutes: _offsetMinutes(now),
-      createdAt: now,
-      updatedAt: now,
+      startUtc: startUtc,
+      startOffsetMinutes: _offsetMinutes(startUtc),
+      createdAt: startUtc,
+      updatedAt: startUtc,
     );
     await _sessions.upsert(session);
     return session;

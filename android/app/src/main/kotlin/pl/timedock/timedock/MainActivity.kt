@@ -22,6 +22,13 @@ class MainActivity : FlutterActivity() {
                 channel?.invokeMethod("stopRequested", null)
             }
         }
+
+        /** Called from [WidgetStartReceiver]; no-op when the engine is gone. */
+        fun notifyStartRequested() {
+            Handler(Looper.getMainLooper()).post {
+                channel?.invokeMethod("startRequested", null)
+            }
+        }
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -39,11 +46,20 @@ class MainActivity : FlutterActivity() {
                         val start = (call.argument<Number>("startMillis"))?.toLong()
                             ?: System.currentTimeMillis()
                         val title = call.argument<String>("title") ?: "TimeDock"
+                        // Post the clock directly first (guaranteed to appear),
+                        // then run the foreground service which adopts it and
+                        // keeps the process unfrozen so the reminder can fire.
                         TimerNotification.show(this, title, start)
+                        TimerState.setActive(this, title, start)
+                        TimerService.start(this, title, start)
+                        TimerWidgetProvider.refresh(this)
                         result.success(null)
                     }
                     "stop" -> {
+                        TimerState.setInactive(this)
                         TimerNotification.cancel(this)
+                        TimerService.stop(this)
+                        TimerWidgetProvider.refresh(this)
                         result.success(null)
                     }
                     "takePendingStop" -> {
@@ -60,6 +76,28 @@ class MainActivity : FlutterActivity() {
                         } else {
                             result.success(null)
                         }
+                    }
+                    "takePendingStart" -> {
+                        val prefs = getSharedPreferences(
+                            TimerStopReceiver.PREFS_FILE, MODE_PRIVATE)
+                        val value =
+                            prefs.getString(WidgetStartReceiver.PENDING_START_KEY, null)
+                        if (value != null) {
+                            prefs.edit()
+                                .remove(WidgetStartReceiver.PENDING_START_KEY)
+                                .apply()
+                        }
+                        result.success(value)
+                    }
+                    "updateWidget" -> {
+                        val json = call.argument<String>("contexts")
+                        getSharedPreferences(
+                            TimerStopReceiver.PREFS_FILE, MODE_PRIVATE)
+                            .edit()
+                            .putString(WidgetStartReceiver.RECENT_KEY, json)
+                            .apply()
+                        TimerWidgetProvider.refresh(this)
+                        result.success(null)
                     }
                     else -> result.notImplemented()
                 }

@@ -6,9 +6,11 @@ import 'domain/entities/time_session.dart';
 import 'domain/repositories/session_repository.dart';
 import 'features/app_state/app_providers.dart';
 import 'features/app_state/context_label.dart';
+import 'features/app_state/forgotten_reminder.dart';
+import 'features/app_state/widget_sync.dart';
 import 'features/home/home_screen.dart';
 import 'features/settings/settings_controller.dart';
-import 'main.dart' show applyPendingStop;
+import 'main.dart' show reconcilePendingActions;
 
 class TimeDockApp extends ConsumerStatefulWidget {
   const TimeDockApp({super.key});
@@ -39,7 +41,7 @@ class _TimeDockAppState extends ConsumerState<TimeDockApp>
     // swiped it away — plain ongoing notifications are dismissable on 14+).
     if (state == AppLifecycleState.resumed) {
       final container = ProviderScope.containerOf(context, listen: false);
-      applyPendingStop(container).then((_) => _resyncNotification());
+      reconcilePendingActions(container).then((_) => _resyncNotification());
     }
   }
 
@@ -62,6 +64,13 @@ class _TimeDockAppState extends ConsumerState<TimeDockApp>
 
   @override
   Widget build(BuildContext context) {
+    // Post the forgotten-timer reminder from the live process (backed by the
+    // foreground service keeping it alive), not just the deferred alarm.
+    ref.watch(forgottenReminderWatchdogProvider);
+
+    // Keep the home-screen widget's recent-context tiles up to date.
+    ref.watch(widgetSyncProvider);
+
     // Mirror the running timer into the notification and the scheduled
     // forgotten-timer reminder (a system alarm, so it fires in Doze).
     ref.listen<AsyncValue<TimeSession?>>(activeSessionProvider,

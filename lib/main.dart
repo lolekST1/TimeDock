@@ -26,8 +26,10 @@ Future<void> main() async {
   if (Platform.isAndroid) {
     overrides.add(timerForegroundServiceProvider.overrideWithValue(
       AndroidTimerForegroundService(
-        // STOP on the notification while the app is alive.
-        onStopRequested: () => container.read(timerServiceProvider).stop(),
+        // STOP on the notification / widget while the app is alive.
+        onStopRequested: () => reconcilePendingActions(container),
+        // Start/switch from the widget while the app is alive.
+        onStartRequested: () => reconcilePendingActions(container),
       ),
     ));
     overrides.add(reminderSchedulerProvider
@@ -36,7 +38,7 @@ Future<void> main() async {
 
   container = ProviderContainer(overrides: overrides);
   await container.read(seederProvider).seedIfEmpty();
-  await applyPendingStop(container);
+  await reconcilePendingActions(container);
 
   runApp(
     UncontrolledProviderScope(
@@ -46,11 +48,36 @@ Future<void> main() async {
   );
 }
 
-/// If STOP was pressed on the notification while the app was frozen or dead,
-/// close the session at the exact recorded instant.
-Future<void> applyPendingStop(ProviderContainer container) async {
-  final pending =
-      await container.read(timerForegroundServiceProvider).takePendingStop();
-  if (pending == null) return;
-  await container.read(timerServiceProvider).stopAt(pending);
+/// Reconciles the database (the source of truth) with widget/notification
+/// actions taken while the app was frozen or dead: a pending start/switch (from
+/// tapping a widget tile) and/or a pending stop (from the STOP button).
+///
+/// Both are consumed here and applied in CHRONOLOGICAL order, which matters
+/// when both happened: stopping one timer then starting another must close the
+/// first at its stop instant before opening the second — applying the stop last
+/// would instead close the freshly started timer and lose it.
+Future<void> reconcilePendingActions(ProviderContainer container) async {
+  final service = container.read(timerForegroundServiceProvider);
+  final timer = container.read(timerServiceProvider);
+  final start = await service.takePendingStart();
+  final stop = await service.takePendingStop();
+
+  Future<void> applyStart() async {
+    if (start == null) return;
+    // A fresh start: startAt stops and saves any running session first.
+    await timer.startAt(start.context, start.startUtc);
+  }
+
+  Future<void> applyStop() async {
+    if (stop == null) return;
+    await timer.stopAt(stop);
+  }
+
+  if (start != null && stop != null && stop.isBefore(start.startUtc)) {
+    await applyStop();
+    await applyStart();
+  } else {
+    await applyStart();
+    await applyStop();
+  }
 }

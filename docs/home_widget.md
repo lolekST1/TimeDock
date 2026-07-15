@@ -12,16 +12,28 @@ których operują, są już gotowe.
 - `SessionRepository.watchActive` — stan aktywnego timera (start, kontekst).
 - `TimerService.start/stop` — akcje, które widget/tile/notyfikacja mają wołać.
 
-## Do zrobienia natywnie
+## Stan
 
-1. **Widget ekranu głównego** (Android `AppWidgetProvider` + Glance/RemoteViews):
-   - lista ostatnich kontekstów (tap → start bez otwierania aplikacji),
-   - stan aktywnego timera z chronometrem + STOP,
-   - odświeżanie po zmianie aktywnej sesji (WorkManager / broadcast).
-   Most Flutter↔widget: `home_widget` (współdzielony storage + callback).
-2. **Kafelek Quick Settings** (`TileService`): wznów ostatni kontekst / STOP.
-3. **Wspólny punkt wejścia**: headless Dart entrypoint startujący timer z
-   akcji widgetu/kafla, piszący do tej samej bazy Drift.
+1. **Widget ekranu głównego** (`TimerWidgetProvider`, RemoteViews) — ZROBIONE:
+   - aktywny timer: kontekst + natywny chronometr + STOP,
+   - bezczynny: kafelki do 3 ostatnich kontekstów → **start jednym dotknięciem
+     bez otwierania aplikacji** (tap otwiera apkę tylko gdy brak historii).
+2. **Kafelek Quick Settings** — USUNIĘTY (niepraktyczny). Start spoza aplikacji
+   idzie tylko przez widget ekranu głównego.
+3. **Start bez ciężkiego headless silnika** — zamiast tego wzorzec „pending
+   start" (analogiczny do „pending stop"): `WidgetStartReceiver` zapisuje
+   natywnie zamiar (kontekst + moment) i od razu pokazuje zegar/FGS/aktualizuje
+   widget; Dart tworzy sesję w bazie (źródło prawdy) przy najbliższym pchnięciu
+   (`startRequested`, gdy proces żyje) albo przy starcie/wznowieniu
+   (`applyPendingStart`). Lista ostatnich kontekstów jest wypychana do natywnej
+   pamięci przez `widgetSyncProvider` (`updateWidget`).
 
-Powód odroczenia: budowa i weryfikacja wymaga uruchomienia na Androidzie;
-logika startu/stopu i dane do wyświetlenia są zaimplementowane i przetestowane.
+## Znane ograniczenie
+
+Jeśli timer wystartuje z widgetu/kafla, gdy aplikacja jest całkowicie ubita,
+przypomnienie o zapomnianym timerze (tick w izolacie Dart) uzbroi się dopiero
+po pierwszym otwarciu aplikacji — natywny zegar/FGS działają od razu, ale bez
+żywego Darta nie ma ticku ani zaplanowanego alarmu. Docelowe rozwiązanie:
+przenieść sprawdzanie progu do natywnego `TimerService` (postDelayed/Handler),
+co uniezależni przypomnienie od izolaty i pozwoli zdjąć wakelock. Na razie
+odłożone, żeby nie ruszać działającego mechanizmu.

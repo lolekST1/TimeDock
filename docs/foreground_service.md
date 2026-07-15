@@ -1,18 +1,28 @@
 # Powiadomienie timera — notatka wdrożeniowa
 
-> STATUS: wersja 3 — bez foreground service. Powiadomienie z licznikiem jest
-> zwykłym, przypiętym powiadomieniem systemowym publikowanym bezpośrednio
-> (TimerNotification.kt): czas renderuje chronometr systemowy
-> (setUsesChronometer+setWhen), więc tyka bez żadnego procesu i przeżywa
-> nawet śmierć aplikacji — odporne na Doze i OEM-y (ColorOS ubijał FGS,
-> stąd zmiana architektury). STOP: TimerStopReceiver zapisuje dokładny
-> moment naciśnięcia (pending stop), chowa powiadomienie i budzi Dart;
-> pending stop jest aplikowany przy starcie/wznowieniu aplikacji
-> (TimerService.stopAt), więc czas sesji się nie przekłamuje.
-> Przypomnienie o zapomnianym timerze: alarm systemowy
-> (zonedSchedule exactAllowWhileIdle) planowany przy starcie sesji.
-> Uwaga: na Androidzie 14+ użytkownik może zsunąć przypięte powiadomienie —
-> przy powrocie do aplikacji jest ono ponownie publikowane.
+> STATUS: wersja 4 — foreground service przywrócony jako mechanizm
+> anty-zamrożeniowy. Powiadomienie z zegarem jest publikowane bezpośrednio
+> (TimerNotification.show) natywnym chronometrem (setUsesChronometer+setWhen),
+> więc pojawia się od razu i tyka bez CPU; następnie TimerService (foreground
+> service, typ specialUse) „przejmuje" to samo powiadomienie (ID 256), żeby
+> proces nie został zamrożony przez OEM-y (ColorOS/Oppo). Bez tego zamrożony
+> proces wstrzymuje dostarczenie przypomnienia do czasu otwarcia aplikacji —
+> to była regresja po usunięciu FGS w wersji 3.
+>
+> Przypomnienie o zapomnianym timerze ma teraz DWIE drogi dostarczenia:
+> 1. tick w procesie (ForgottenReminderWatchdog) — co 30 s sprawdza próg i
+>    publikuje przypomnienie bezpośrednio (showNow); działa, bo FGS trzyma
+>    proces przy życiu, a TimerService trzyma partial wake lock (CPU nie śpi
+>    przy zgaszonym ekranie). To odtwarza mechanizm z pierwszej działającej
+>    wersji;
+> 2. alarm systemowy (zonedSchedule alarmClock) jako zapas, gdyby proces mimo
+>    wszystko zginął. Obie drogi używają tego samego ID powiadomienia (1001),
+>    więc pokaże się co najwyżej jedno.
+>
+> STOP: TimerStopReceiver zapisuje dokładny moment (pending stop), chowa
+> powiadomienie, zatrzymuje FGS i budzi Dart; pending stop jest aplikowany przy
+> starcie/wznowieniu. Uwaga: na Androidzie 14+ użytkownik może zsunąć przypięte
+> powiadomienie — przy powrocie do aplikacji jest ono ponownie publikowane.
 
 
 Warstwa Dart timera jest kompletna i nie zależy od żywego procesu:
