@@ -64,12 +64,7 @@ Future<void> reconcilePendingActions(ProviderContainer container) async {
 
   Future<void> applyStart() async {
     if (start == null) return;
-    if (start.switchOnly) {
-      // A timer was running: switch its context in place, keeping the clock.
-      final switched = await timer.switchContext(start.context);
-      if (switched != null) return;
-      // Nothing was running after all — fall through to a normal start.
-    }
+    // A fresh start: startAt stops and saves any running session first.
     await timer.startAt(start.context, start.startUtc);
   }
 

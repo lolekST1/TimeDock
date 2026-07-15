@@ -66,7 +66,8 @@ class TimerWidgetProvider : AppWidgetProvider() {
                 )
                 views.setOnClickPendingIntent(R.id.widget_stop, stopPending)
 
-                // Other recent contexts to switch to (tap = switch, not restart).
+                // Other recent contexts: tapping one stops this timer and
+                // starts a fresh session for that context.
                 bindRecentTiles(
                     context, views,
                     maxCount = 2, excludeTitle = runningTitle, showHintIfEmpty = false

@@ -2,19 +2,13 @@ import '../entities/time_session.dart';
 import '../repositories/session_repository.dart';
 
 /// A start requested from the home-screen widget while the app was dead: the
-/// chosen [context] and the instant the user tapped. When [switchOnly] is true
-/// a timer was already running and the intent is to switch its context in place
-/// (keep the clock), not start a new session.
+/// chosen [context] and the instant the user tapped. Applied as a fresh start
+/// (any running timer is stopped and saved first).
 class PendingStart {
-  const PendingStart({
-    required this.context,
-    required this.startUtc,
-    this.switchOnly = false,
-  });
+  const PendingStart({required this.context, required this.startUtc});
 
   final SessionContext context;
   final DateTime startUtc;
-  final bool switchOnly;
 }
 
 /// Platform seam for the always-on timer notification / foreground service.
