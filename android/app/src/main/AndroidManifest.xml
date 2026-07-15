@@ -1,5 +1,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Foreground service runs while a timer is active. Its real job is to
+         keep the app process unfrozen so the forgotten-timer alarm actually
+         fires in the background: OEMs like ColorOS/Oppo otherwise freeze a
+         backgrounded app and defer its alarm until the app is reopened.
+         Declared as specialUse (no Android 15 dataSync 6h/day cap) with a
+         dataSync fallback for API 29-33. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <!-- Exact alarms drive the forgotten-timer reminder so it fires in Doze
          and under aggressive OEM throttling. USE_EXACT_ALARM is auto-granted
          on 13+; SCHEDULE_EXACT_ALARM covers API 31-32. -->
@@ -39,6 +48,29 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- Keeps the process alive while a timer runs (see permissions above)
+             and holds the ongoing chronometer notification. -->
+        <service
+            android:name=".TimerService"
+            android:foregroundServiceType="specialUse|dataSync"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="keep_process_unfrozen_so_the_forgotten_timer_reminder_fires" />
+        </service>
+
+        <!-- Quick Settings tile: start (opens the app) / stop the timer. -->
+        <service
+            android:name=".TimerTileService"
+            android:icon="@mipmap/ic_launcher"
+            android:label="TimeDock"
+            android:exported="true"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
 
         <!-- STOP action on the timer notification. -->
         <receiver

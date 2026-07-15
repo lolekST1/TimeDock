@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.service.quicksettings.TileService
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
@@ -39,11 +40,20 @@ class MainActivity : FlutterActivity() {
                         val start = (call.argument<Number>("startMillis"))?.toLong()
                             ?: System.currentTimeMillis()
                         val title = call.argument<String>("title") ?: "TimeDock"
+                        // Post the clock directly first (guaranteed to appear),
+                        // then run the foreground service which adopts it and
+                        // keeps the process unfrozen so the reminder can fire.
                         TimerNotification.show(this, title, start)
+                        TimerState.setActive(this, title, start)
+                        TimerService.start(this, title, start)
+                        requestTileListeningUpdate()
                         result.success(null)
                     }
                     "stop" -> {
+                        TimerState.setInactive(this)
                         TimerNotification.cancel(this)
+                        TimerService.stop(this)
+                        requestTileListeningUpdate()
                         result.success(null)
                     }
                     "takePendingStop" -> {
@@ -66,6 +76,18 @@ class MainActivity : FlutterActivity() {
             } catch (e: Exception) {
                 result.error("timer_service", e.message, null)
             }
+        }
+    }
+
+    /** Nudge the Quick Settings tile to re-read the timer state. */
+    private fun requestTileListeningUpdate() {
+        try {
+            TileService.requestListeningState(
+                this,
+                android.content.ComponentName(this, TimerTileService::class.java)
+            )
+        } catch (_: Exception) {
+            // Tile not added / not available: nothing to refresh.
         }
     }
 

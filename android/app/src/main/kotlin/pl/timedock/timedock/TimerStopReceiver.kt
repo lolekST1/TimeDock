@@ -25,7 +25,9 @@ class TimerStopReceiver : BroadcastReceiver() {
             .putLong(PENDING_STOP_KEY, System.currentTimeMillis())
             .apply()
 
+        TimerState.setInactive(context)
         TimerNotification.cancel(context)
+        TimerService.stop(context)
 
         MainActivity.notifyStopRequested()
     }
