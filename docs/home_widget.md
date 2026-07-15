@@ -12,16 +12,16 @@ których operują, są już gotowe.
 - `SessionRepository.watchActive` — stan aktywnego timera (start, kontekst).
 - `TimerService.start/stop` — akcje, które widget/tile/notyfikacja mają wołać.
 
-## Do zrobienia natywnie
+## Stan
 
-1. **Widget ekranu głównego** (Android `AppWidgetProvider` + Glance/RemoteViews):
-   - lista ostatnich kontekstów (tap → start bez otwierania aplikacji),
-   - stan aktywnego timera z chronometrem + STOP,
-   - odświeżanie po zmianie aktywnej sesji (WorkManager / broadcast).
-   Most Flutter↔widget: `home_widget` (współdzielony storage + callback).
-2. **Kafelek Quick Settings** (`TileService`): wznów ostatni kontekst / STOP.
-3. **Wspólny punkt wejścia**: headless Dart entrypoint startujący timer z
-   akcji widgetu/kafla, piszący do tej samej bazy Drift.
-
-Powód odroczenia: budowa i weryfikacja wymaga uruchomienia na Androidzie;
-logika startu/stopu i dane do wyświetlenia są zaimplementowane i przetestowane.
+1. **Widget ekranu głównego** (`TimerWidgetProvider`, RemoteViews) — ZROBIONE
+   w wersji podstawowej: pokazuje stan aktywnego timera (kontekst + natywny
+   chronometr) z przyciskiem STOP, a w stanie bezczynności otwiera aplikację.
+   Stan czytany z `TimerState` (współdzielone prefs), odświeżany przy
+   starcie/stopie. TODO: kafelki ostatnich kontekstów z „tap → start bez
+   otwierania aplikacji" (wymaga mostka `home_widget` + headless Dart
+   entrypointu piszącego do bazy Drift).
+2. **Kafelek Quick Settings** (`TimerTileService`) — ZROBIONE: aktywny gdy
+   timer działa (tap = STOP), bezczynny gdy nie (tap = otwórz aplikację).
+3. **Wspólny punkt wejścia** (headless Dart start z widgetu/kafla) — TODO;
+   dopóki go nie ma, start spoza aplikacji otwiera UI do wyboru kontekstu.

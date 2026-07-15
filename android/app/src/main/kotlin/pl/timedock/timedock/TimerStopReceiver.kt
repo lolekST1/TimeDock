@@ -28,6 +28,7 @@ class TimerStopReceiver : BroadcastReceiver() {
         TimerState.setInactive(context)
         TimerNotification.cancel(context)
         TimerService.stop(context)
+        TimerWidgetProvider.refresh(context)
 
         MainActivity.notifyStopRequested()
     }

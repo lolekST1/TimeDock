@@ -16,6 +16,15 @@ abstract interface class ReminderScheduler {
 
   Future<void> cancel();
 
+  /// Posts the reminder immediately (used by the in-process watchdog tick while
+  /// a timer is running). Shares the scheduled alarm's notification id, so if
+  /// both fire only one notification shows.
+  Future<void> showNow(
+    TimeSession session,
+    ForgottenTimerSettings settings, {
+    String contextLabel,
+  });
+
   /// Ensures exact alarms are permitted (opens system settings if needed);
   /// returns whether they are now available. See [AndroidReminderScheduler].
   Future<bool> ensureExactAlarms();
@@ -33,6 +42,13 @@ class NoopReminderScheduler implements ReminderScheduler {
 
   @override
   Future<void> cancel() async {}
+
+  @override
+  Future<void> showNow(
+    TimeSession session,
+    ForgottenTimerSettings settings, {
+    String contextLabel = '',
+  }) async {}
 
   @override
   Future<bool> ensureExactAlarms() async => true;
@@ -118,26 +134,15 @@ class AndroidReminderScheduler implements ReminderScheduler {
     // app wakes). alarmClock still needs SCHEDULE_EXACT_ALARM/USE_EXACT_ALARM.
     final canExact = await ensureExactAlarms();
 
-    final label = contextLabel.isEmpty ? 'bieżącym zadaniem' : contextLabel;
-    const details = NotificationDetails(
-      android: AndroidNotificationDetails(
-        _channelId,
-        'Przypomnienia',
-        channelDescription: 'Ostrzeżenie o długo działającym timerze',
-        importance: Importance.high,
-        priority: Priority.high,
-      ),
-    );
-    final body = 'Timer nad $label działa dłużej niż zwykle. '
-        'Otwórz TimeDock, aby zatrzymać lub przyciąć sesję.';
     final fireAt = tz.TZDateTime.from(fireAtUtc, tz.UTC);
+    final body = _body(contextLabel);
 
     Future<void> schedule(AndroidScheduleMode mode) => _plugin.zonedSchedule(
           _notificationId,
-          'Nadal pracujesz?',
+          _title,
           body,
           fireAt,
-          details,
+          _details,
           androidScheduleMode: mode,
           uiLocalNotificationDateInterpretation:
               UILocalNotificationDateInterpretation.absoluteTime,
@@ -155,6 +160,39 @@ class AndroidReminderScheduler implements ReminderScheduler {
     } on PlatformException {
       await schedule(AndroidScheduleMode.inexactAllowWhileIdle);
     }
+  }
+
+  /// Posts the reminder right now (the in-process tick calls this the moment
+  /// the threshold is crossed while the app is kept alive by the foreground
+  /// service — the delivery path that does not depend on an OEM honouring a
+  /// deferred alarm).
+  @override
+  Future<void> showNow(
+    TimeSession session,
+    ForgottenTimerSettings settings, {
+    String contextLabel = '',
+  }) async {
+    if (!settings.enabled) return;
+    await _ensureInitialized();
+    await _plugin.show(_notificationId, _title, _body(contextLabel), _details);
+  }
+
+  static const _title = 'Nadal pracujesz?';
+
+  static const _details = NotificationDetails(
+    android: AndroidNotificationDetails(
+      _channelId,
+      'Przypomnienia',
+      channelDescription: 'Ostrzeżenie o długo działającym timerze',
+      importance: Importance.high,
+      priority: Priority.high,
+    ),
+  );
+
+  String _body(String contextLabel) {
+    final label = contextLabel.isEmpty ? 'bieżącym zadaniem' : contextLabel;
+    return 'Timer nad $label działa dłużej niż zwykle. '
+        'Otwórz TimeDock, aby zatrzymać lub przyciąć sesję.';
   }
 
   @override

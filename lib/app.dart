@@ -6,6 +6,7 @@ import 'domain/entities/time_session.dart';
 import 'domain/repositories/session_repository.dart';
 import 'features/app_state/app_providers.dart';
 import 'features/app_state/context_label.dart';
+import 'features/app_state/forgotten_reminder.dart';
 import 'features/home/home_screen.dart';
 import 'features/settings/settings_controller.dart';
 import 'main.dart' show applyPendingStop;
@@ -62,6 +63,10 @@ class _TimeDockAppState extends ConsumerState<TimeDockApp>
 
   @override
   Widget build(BuildContext context) {
+    // Post the forgotten-timer reminder from the live process (backed by the
+    // foreground service keeping it alive), not just the deferred alarm.
+    ref.watch(forgottenReminderWatchdogProvider);
+
     // Mirror the running timer into the notification and the scheduled
     // forgotten-timer reminder (a system alarm, so it fires in Doze).
     ref.listen<AsyncValue<TimeSession?>>(activeSessionProvider,

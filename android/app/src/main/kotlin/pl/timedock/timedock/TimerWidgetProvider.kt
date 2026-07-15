@@ -1,0 +1,85 @@
+package pl.timedock.timedock
+
+import android.app.PendingIntent
+import android.appwidget.AppWidgetManager
+import android.appwidget.AppWidgetProvider
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.os.SystemClock
+import android.view.View
+import android.widget.RemoteViews
+
+/**
+ * Home-screen widget mirroring the timer.
+ *
+ * Running: shows the context and a live chronometer (rendered by the launcher
+ * host, so it ticks with no app process) plus a STOP button. Idle: shows a hint
+ * and the whole widget opens the app to pick a context and start. State comes
+ * from [TimerState] so it is correct even when the process is dead; it is
+ * refreshed on start/stop via [refresh].
+ */
+class TimerWidgetProvider : AppWidgetProvider() {
+
+    companion object {
+        /** Re-render every placed widget from the current [TimerState]. */
+        fun refresh(context: Context) {
+            val manager = AppWidgetManager.getInstance(context) ?: return
+            val component = ComponentName(context, TimerWidgetProvider::class.java)
+            val ids = manager.getAppWidgetIds(component)
+            for (id in ids) {
+                manager.updateAppWidget(id, buildViews(context))
+            }
+        }
+
+        private fun buildViews(context: Context): RemoteViews {
+            val views = RemoteViews(context.packageName, R.layout.timer_widget)
+            val active = TimerState.isActive(context)
+
+            val openIntent =
+                context.packageManager.getLaunchIntentForPackage(context.packageName)
+            val openPending = openIntent?.let {
+                PendingIntent.getActivity(
+                    context, 0, it,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+            }
+            views.setOnClickPendingIntent(R.id.widget_root, openPending)
+
+            if (active) {
+                views.setTextViewText(R.id.widget_title, TimerState.title(context))
+                views.setViewVisibility(R.id.widget_hint, View.GONE)
+                views.setViewVisibility(R.id.widget_chrono, View.VISIBLE)
+                views.setViewVisibility(R.id.widget_stop, View.VISIBLE)
+
+                val elapsed = System.currentTimeMillis() - TimerState.startMillis(context)
+                val base = SystemClock.elapsedRealtime() - elapsed
+                views.setChronometer(R.id.widget_chrono, base, null, true)
+
+                val stopPending = PendingIntent.getBroadcast(
+                    context, 2,
+                    Intent(context, TimerStopReceiver::class.java),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                views.setOnClickPendingIntent(R.id.widget_stop, stopPending)
+            } else {
+                views.setTextViewText(R.id.widget_title, "TimeDock")
+                views.setViewVisibility(R.id.widget_chrono, View.GONE)
+                views.setViewVisibility(R.id.widget_stop, View.GONE)
+                views.setViewVisibility(R.id.widget_hint, View.VISIBLE)
+                views.setTextViewText(R.id.widget_hint, "Dotknij, aby rozpocząć")
+            }
+            return views
+        }
+    }
+
+    override fun onUpdate(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetIds: IntArray
+    ) {
+        for (id in appWidgetIds) {
+            appWidgetManager.updateAppWidget(id, buildViews(context))
+        }
+    }
+}

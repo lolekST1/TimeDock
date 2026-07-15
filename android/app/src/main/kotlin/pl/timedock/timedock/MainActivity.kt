@@ -47,6 +47,7 @@ class MainActivity : FlutterActivity() {
                         TimerState.setActive(this, title, start)
                         TimerService.start(this, title, start)
                         requestTileListeningUpdate()
+                        TimerWidgetProvider.refresh(this)
                         result.success(null)
                     }
                     "stop" -> {
@@ -54,6 +55,7 @@ class MainActivity : FlutterActivity() {
                         TimerNotification.cancel(this)
                         TimerService.stop(this)
                         requestTileListeningUpdate()
+                        TimerWidgetProvider.refresh(this)
                         result.success(null)
                     }
                     "takePendingStop" -> {
