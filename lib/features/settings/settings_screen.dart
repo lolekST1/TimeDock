@@ -114,6 +114,16 @@ class SettingsScreen extends ConsumerWidget {
             value: settings.exportRoundTo15,
             onChanged: controller.setExportRoundTo15,
           ),
+          ListTile(
+            leading: const Icon(Icons.badge_outlined),
+            title: const Text('Autor worklog'),
+            subtitle: Text(settings.worklogAuthor.isEmpty
+                ? 'Dodawany do eksportu worklog (JSON), aby aplikacja '
+                    'rozliczeniowa wiedziała, od kogo pochodzi czas'
+                : settings.worklogAuthor),
+            trailing: const Icon(Icons.edit_outlined),
+            onTap: () => _editWorklogAuthor(context, ref, settings.worklogAuthor),
+          ),
           const Divider(),
           _SectionTitle('Przestrzenie (workspace)'),
           for (final w in workspaces)
@@ -177,6 +187,39 @@ class SettingsScreen extends ConsumerWidget {
             : 'Włącz „Alarmy i przypomnienia" oraz autostart aplikacji '
                 'w ustawieniach systemu, aby przypomnienie działało w tle.'),
       ));
+  }
+
+  Future<void> _editWorklogAuthor(
+      BuildContext context, WidgetRef ref, String current) async {
+    final controller = TextEditingController(text: current);
+    final value = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Autor worklog'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'E-mail lub identyfikator (opcjonalnie)',
+            hintText: 'np. jan.kowalski@absysco.com',
+          ),
+          onSubmitted: (v) => Navigator.of(context).pop(v.trim()),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Anuluj'),
+          ),
+          FilledButton(
+            // Empty is allowed here — it clears the configured author.
+            onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+            child: const Text('Zapisz'),
+          ),
+        ],
+      ),
+    );
+    if (value == null) return; // cancelled
+    await ref.read(settingsProvider.notifier).setWorklogAuthor(value);
   }
 
   Future<void> _addWorkspace(

@@ -175,10 +175,16 @@ class WorklogExportBuilder {
 
   /// Resolves and filters the workspace's sessions in [range] into worklog rows.
   /// Returns an empty list when the workspace is not flagged for export.
-  Future<List<WorklogRow>> worklogRows(
-      String workspaceId, ReportRange range) async {
+  ///
+  /// [author] is the single configured worklog author for this installation,
+  /// stamped onto every row so the downstream timesheet app knows whose time it
+  /// is (TimeDock has no user model). A blank value is normalised to null.
+  Future<List<WorklogRow>> worklogRows(String workspaceId, ReportRange range,
+      {String? author}) async {
     final workspace = await workspaces.getById(workspaceId);
     if (workspace == null || !workspace.exportsToTimesheet) return const [];
+    final authorValue =
+        (author?.trim().isEmpty ?? true) ? null : author!.trim();
 
     final from = range.firstDay.subtract(const Duration(days: 1));
     final to = range.lastDay.add(const Duration(days: 2));
@@ -203,6 +209,7 @@ class WorklogExportBuilder {
         durationSeconds: s.duration.inSeconds,
         description: s.comment,
         workspace: workspace.name,
+        author: authorValue,
       ));
     }
     rows.sort((a, b) => a.startUtc.compareTo(b.startUtc));

@@ -121,6 +121,22 @@ void main() {
     expect(rows, isEmpty);
   });
 
+  test('stamps the configured author onto every row', () async {
+    await setExportFlag(exports: true);
+    final rows =
+        await builder.worklogRows('w1', range, author: '  jan@absysco.com  ');
+    expect(rows, hasLength(1));
+    expect(rows.single.author, 'jan@absysco.com'); // trimmed
+  });
+
+  test('a blank author is normalised to null', () async {
+    await setExportFlag(exports: true);
+    for (final author in [null, '', '   ']) {
+      final rows = await builder.worklogRows('w1', range, author: author);
+      expect(rows.single.author, isNull);
+    }
+  });
+
   group('shouldExport rule', () {
     final finished = session(
       start: day.toUtc(),

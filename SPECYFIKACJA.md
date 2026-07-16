@@ -354,12 +354,14 @@ Główny przypadek użycia: **miesięczne zestawienie czasu dla pracodawcy/klien
   zsumowane) — to jest to, co faktycznie wysyła się klientowi.
 - **Worklog JSON [krok eksportu]**: lista obiektów, jeden na zakończoną sesję
   (`sessionId`, `issueKey`, `startUtc`, `endUtc`, `durationSeconds`,
-  `description`, `workspace`), gotowa do dalszego przetwarzania przez przyszłą
-  aplikację rozliczeniową (następca Tempo). Eksportowane są tylko sesje z
-  przestrzeni oznaczonej flagą „Eksportuj do rozliczenia czasu" i tylko te,
-  których zadanie ma niepusty `jiraId`. To nadal offline: TimeDock produkuje
-  plik, nie łączy się z żadnym API — integracja z API Jira pozostaje poza
-  zakresem (§17).
+  `description`, `workspace`, `author`), gotowa do dalszego przetwarzania przez
+  przyszłą aplikację rozliczeniową (następca Tempo). Eksportowane są tylko sesje
+  z przestrzeni oznaczonej flagą „Eksportuj do rozliczenia czasu" i tylko te,
+  których zadanie ma niepusty `jiraId`. Pole `author` (e-mail/identyfikator) to
+  globalne ustawienie instalacji — TimeDock nie ma modelu wielu użytkowników
+  (§17), więc autora czasu ustala się raz w ustawieniach. To nadal offline:
+  TimeDock produkuje plik, nie łączy się z żadnym API — integracja z API Jira
+  pozostaje poza zakresem (§17).
 - **XLSX (po MVP)**: te same dane, arkusz sformatowany.
 - Opcjonalne **zaokrąglanie w eksporcie** (np. do 15 min w górę) — wyłącznie na
   poziomie eksportu; baza zawsze trzyma czas rzeczywisty.

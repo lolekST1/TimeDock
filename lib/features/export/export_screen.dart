@@ -139,7 +139,8 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       final range = ref.read(reportRangeProvider);
       final rows = await ref
           .read(worklogExportBuilderProvider)
-          .worklogRows(widget.workspaceId, range);
+          .worklogRows(widget.workspaceId, range,
+              author: ref.read(settingsProvider).worklogAuthor);
       if (rows.isEmpty) {
         return 'Brak sesji do eksportu worklog.\nWłącz „Eksportuj do '
             'rozliczenia czasu" dla tej przestrzeni i uzupełnij Jira ID zadań.';

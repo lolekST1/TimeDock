@@ -14,6 +14,7 @@ class WorklogRow {
     required this.durationSeconds,
     this.description,
     required this.workspace,
+    this.author,
   });
 
   /// Session UUID — the idempotency key on the consuming side.
@@ -36,6 +37,11 @@ class WorklogRow {
   /// Workspace name, informational only.
   final String workspace;
 
+  /// Who logged the time — the single configured worklog author for this
+  /// installation (TimeDock is a personal tool; there is no user model).
+  /// May be null when no author is configured.
+  final String? author;
+
   Map<String, Object?> toJson() => {
         'sessionId': sessionId,
         'issueKey': issueKey,
@@ -44,6 +50,7 @@ class WorklogRow {
         'durationSeconds': durationSeconds,
         'description': description,
         'workspace': workspace,
+        'author': author,
       };
 
   /// ISO-8601 in UTC with a trailing `Z` (e.g. `2026-07-16T08:00:00.000Z`).

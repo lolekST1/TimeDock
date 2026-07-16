@@ -96,6 +96,25 @@ void main() {
     expect(container.read(settingsProvider).themeMode, ThemeMode.dark);
   });
 
+  test('worklog author defaults to empty, persists and trims', () async {
+    final container = await _container({});
+    addTearDown(container.dispose);
+    expect(container.read(settingsProvider).worklogAuthor, '');
+
+    await container
+        .read(settingsProvider.notifier)
+        .setWorklogAuthor('  jan@absysco.com  ');
+    expect(container.read(settingsProvider).worklogAuthor, 'jan@absysco.com');
+    expect(container.read(sharedPreferencesProvider).getString('worklog_author'),
+        'jan@absysco.com');
+  });
+
+  test('reads a stored worklog author', () async {
+    final container = await _container({'worklog_author': 'ala@absysco.com'});
+    addTearDown(container.dispose);
+    expect(container.read(settingsProvider).worklogAuthor, 'ala@absysco.com');
+  });
+
   test('maps to domain forgotten-timer and export config', () async {
     final container = await _container({
       'forgotten_timer_threshold_minutes': 45,

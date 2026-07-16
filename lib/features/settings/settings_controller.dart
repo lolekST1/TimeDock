@@ -13,6 +13,7 @@ class AppSettings {
     this.forgottenTimerThresholdMinutes = 240,
     this.exportDecimalHours = false,
     this.exportRoundTo15 = false,
+    this.worklogAuthor = '',
     this.themeMode = ThemeMode.system,
   });
 
@@ -20,6 +21,11 @@ class AppSettings {
   final int forgottenTimerThresholdMinutes;
   final bool exportDecimalHours;
   final bool exportRoundTo15;
+
+  /// Author stamped onto worklog (timesheet) exports so the downstream app
+  /// knows whose time it is. Empty means no author configured.
+  final String worklogAuthor;
+
   final ThemeMode themeMode;
 
   ForgottenTimerSettings get forgottenTimer => ForgottenTimerSettings(
@@ -41,6 +47,7 @@ class AppSettings {
     int? forgottenTimerThresholdMinutes,
     bool? exportDecimalHours,
     bool? exportRoundTo15,
+    String? worklogAuthor,
     ThemeMode? themeMode,
   }) {
     return AppSettings(
@@ -50,6 +57,7 @@ class AppSettings {
           this.forgottenTimerThresholdMinutes,
       exportDecimalHours: exportDecimalHours ?? this.exportDecimalHours,
       exportRoundTo15: exportRoundTo15 ?? this.exportRoundTo15,
+      worklogAuthor: worklogAuthor ?? this.worklogAuthor,
       themeMode: themeMode ?? this.themeMode,
     );
   }
@@ -61,6 +69,7 @@ class SettingsController extends Notifier<AppSettings> {
   static const _kLegacyThresholdHours = 'forgotten_timer_threshold_hours';
   static const _kDecimal = 'export_decimal_hours';
   static const _kRound = 'export_round_15';
+  static const _kWorklogAuthor = 'worklog_author';
   static const _kThemeMode = 'theme_mode';
 
   @override
@@ -79,6 +88,8 @@ class SettingsController extends Notifier<AppSettings> {
       exportDecimalHours:
           prefs.getBool(_kDecimal) ?? defaults.exportDecimalHours,
       exportRoundTo15: prefs.getBool(_kRound) ?? defaults.exportRoundTo15,
+      worklogAuthor:
+          prefs.getString(_kWorklogAuthor) ?? defaults.worklogAuthor,
       themeMode: _themeModeFromString(prefs.getString(_kThemeMode)),
     );
   }
@@ -115,6 +126,12 @@ class SettingsController extends Notifier<AppSettings> {
   Future<void> setExportRoundTo15(bool value) async {
     await ref.read(sharedPreferencesProvider).setBool(_kRound, value);
     state = state.copyWith(exportRoundTo15: value);
+  }
+
+  Future<void> setWorklogAuthor(String value) async {
+    final trimmed = value.trim();
+    await ref.read(sharedPreferencesProvider).setString(_kWorklogAuthor, trimmed);
+    state = state.copyWith(worklogAuthor: trimmed);
   }
 }
 

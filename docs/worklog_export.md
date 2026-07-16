@@ -12,12 +12,16 @@ tekstowe wpisywane ręcznie.
 1. Oznacz przestrzeń (workspace) do eksportu: **Ustawienia → Przestrzenie →
    menu przestrzeni → „Eksportuj do rozliczenia czasu"**. Flaga jest per
    workspace i domyślnie wyłączona.
-2. Uzupełnij `jiraId` na zadaniach, których czas ma trafić do rozliczenia
+2. (Opcjonalnie, zalecane) Ustaw **autora worklog**: **Ustawienia → Domyślne
+   eksportu → „Autor worklog"** — e-mail lub identyfikator osoby. Trafia do
+   każdego wiersza eksportu (pole `author`), żeby aplikacja rozliczeniowa
+   wiedziała, od kogo pochodzi czas. Puste = pole `author` będzie `null`.
+3. Uzupełnij `jiraId` na zadaniach, których czas ma trafić do rozliczenia
    (np. `ABS-123`). Pole jest walidowane formatem `^[A-Z][A-Z0-9]+-\d+$`;
    puste zadania są pomijane w eksporcie.
-3. Na **ekranie eksportu** ustaw zakres (dzień / tydzień / miesiąc — ten sam
+4. Na **ekranie eksportu** ustaw zakres (dzień / tydzień / miesiąc — ten sam
    selektor co w raportach) i wybierz **„Eksportuj worklog (JSON)"**.
-4. Powstaje plik `timedock_worklog_<timestamp>.json` w katalogu `exports/`
+5. Powstaje plik `timedock_worklog_<timestamp>.json` w katalogu `exports/`
    aplikacji (systemowy share sheet jest odroczony — patrz
    [`export_backup.md`](export_backup.md)). Ten plik jest wejściem dla
    aplikacji rozliczeniowej.
@@ -46,7 +50,8 @@ Lista obiektów JSON, jeden na sesję:
     "endUtc": "2026-07-16T09:30:00.000Z",
     "durationSeconds": 5400,
     "description": "Analiza wymagań",
-    "workspace": "Absysco"
+    "workspace": "Absysco",
+    "author": "jan.kowalski@absysco.com"
   }
 ]
 ```
@@ -60,6 +65,7 @@ Lista obiektów JSON, jeden na sesję:
 | `durationSeconds` | int | Czas trwania w sekundach (liczony z UTC, odporny na DST). |
 | `description` | string \| null | Komentarz sesji; może być `null` lub pusty. |
 | `workspace` | string | Nazwa przestrzeni, informacyjnie. |
+| `author` | string \| null | Autor czasu pracy (e-mail/identyfikator) skonfigurowany w ustawieniach; `null` gdy nie ustawiony. |
 
 Uwagi dla konsumenta:
 - **Idempotencja:** `sessionId` jest stabilny między eksportami — ponowne
@@ -81,23 +87,22 @@ Cała logika wpływająca na poprawność danych jest w warstwie `domain`/`data`
 i pokryta testami (`test/domain/worklog_export_test.dart`,
 `test/data/worklog_export_builder_test.dart`) — bez zależności od Fluttera.
 
-## Ograniczenie: brak tożsamości autora (jeden użytkownik)
+## Tożsamość autora (jeden użytkownik na instalację)
 
-TimeDock jest **narzędziem osobistym** (specyfikacja §17). W modelu danych nie
-istnieje encja ani pole użytkownika/autora — jedna instalacja przechowuje dane
-jednej osoby. **Eksport worklog nie zawiera więc informacji, od kogo pochodzi
-czas pracy.**
+TimeDock jest **narzędziem osobistym** (specyfikacja §17): w modelu danych nie
+istnieje encja użytkownika, a jedna instalacja przechowuje dane jednej osoby.
+Nie ma więc obsługi wielu użytkowników w obrębie aplikacji.
 
-Ma to znaczenie dla aplikacji zastępującej Tempo, gdzie worklog jest z natury
-przypisany do konkretnego pracownika. Autora trzeba ustalić poza tym plikiem —
-możliwe podejścia (decyzja na etap integracji, nie ten):
+Żeby aplikacja zastępująca Tempo wiedziała, **od kogo** pochodzi czas pracy,
+autor jest konfigurowany raz na instalację (**Ustawienia → Domyślne eksportu →
+„Autor worklog"**) i stemplowany na każdy wiersz eksportu w polu `author`
+(e-mail lub identyfikator). To celowo proste rozwiązanie — offline, bez sieci
+i bez modelu wielu użytkowników:
 
-1. **Tożsamość po stronie wgrywającego** — aplikacja rozliczeniowa przypisuje
-   wszystkie sesje z pliku do użytkownika, który go przesłał / jest zalogowany.
-   Najprostsze, nie wymaga zmian w TimeDock.
-2. **Pole autora w eksporcie** — dodać do `WorklogRow` opcjonalne
-   `author`/`workerId` (np. e-mail lub identyfikator Jira), konfigurowane raz
-   w ustawieniach. Wymaga małej zmiany w TimeDock (nadal offline, bez sieci).
+- Wartość jest przycinana; puste ustawienie daje `author: null`.
+- Autor jest ustawieniem globalnym aplikacji (SharedPreferences), nie polem na
+  sesji ani encji — spójne z „jedna instalacja = jedna osoba".
 
-Jeśli docelowo potrzebne jest podejście 2, jest to naturalny kolejny krok —
-poza zakresem tej zmiany.
+Aplikacja rozliczeniowa może użyć `author` wprost albo — jeśli i tak
+uwierzytelnia wgrywającego — potraktować pole jako informację pomocniczą i
+przypisać sesje do zalogowanego użytkownika.

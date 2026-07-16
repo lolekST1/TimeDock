@@ -8,6 +8,7 @@ void main() {
     String sessionId = 's1',
     String issueKey = 'ABS-123',
     String? description,
+    String? author,
   }) =>
       WorklogRow(
         sessionId: sessionId,
@@ -17,6 +18,7 @@ void main() {
         durationSeconds: 5400,
         description: description,
         workspace: 'Absysco',
+        author: author,
       );
 
   group('WorklogExporter.toJson', () {
@@ -54,6 +56,21 @@ void main() {
           (jsonDecode(WorklogExporter.toJson([row()])) as List).first as Map;
       expect(obj.containsKey('description'), isTrue);
       expect(obj['description'], isNull);
+    });
+
+    test('serializes the configured author', () {
+      final obj = (jsonDecode(
+                  WorklogExporter.toJson([row(author: 'jan@absysco.com')]))
+              as List)
+          .first as Map;
+      expect(obj['author'], 'jan@absysco.com');
+    });
+
+    test('a missing author serializes as null', () {
+      final obj =
+          (jsonDecode(WorklogExporter.toJson([row()])) as List).first as Map;
+      expect(obj.containsKey('author'), isTrue);
+      expect(obj['author'], isNull);
     });
 
     test('an empty list serializes to an empty JSON array', () {
