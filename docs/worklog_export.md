@@ -25,6 +25,10 @@ tekstowe wpisywane ręcznie.
    aplikacji (systemowy share sheet jest odroczony — patrz
    [`export_backup.md`](export_backup.md)). Ten plik jest wejściem dla
    aplikacji rozliczeniowej.
+6. Komunikat po eksporcie podaje liczbę zapisanych pozycji oraz — jeśli
+   dotyczy — **ile zakończonych sesji pominięto z powodu braku Jira ID**.
+   To celowa ochrona przed cichym niedoszacowaniem rozliczenia: jeśli masz
+   billowalny czas bez `jiraId`, uzupełnij go i wyeksportuj ponownie.
 
 ## Co trafia do eksportu (reguły filtrowania)
 
@@ -36,6 +40,10 @@ Wiersz powstaje **tylko** gdy spełnione są wszystkie warunki naraz:
 
 Reguła żyje jako czysta, testowalna funkcja `WorklogExportBuilder.shouldExport`;
 sam serializer (`WorklogExporter`) jest jej nieświadomy.
+
+Sesje zakończone i w zakresie, które odpadają **wyłącznie** przez brak `jiraId`,
+są zliczane (`WorklogExportResult.skippedNoJira`) i pokazywane użytkownikowi po
+eksporcie — żeby billowalny czas nie znikał po cichu.
 
 ## Format pliku
 
@@ -79,9 +87,9 @@ Uwagi dla konsumenta:
 
 Gdy powstanie warstwa sieciowa, ten sam potok da się wywołać bez UI:
 
-- `WorklogExportBuilder.worklogRows(workspaceId, range, {author})` — pobiera
+- `WorklogExportBuilder.worklogExport(workspaceId, range, {author})` — pobiera
   z repozytoriów, filtruje regułą wyżej, stempluje `author` i zwraca
-  `List<WorklogRow>`.
+  `WorklogExportResult` (`rows` + `skippedNoJira`).
 - `WorklogExporter.toJson(rows)` — czysta serializacja do stringa JSON.
 
 Cała logika wpływająca na poprawność danych jest w warstwie `domain`/`data`

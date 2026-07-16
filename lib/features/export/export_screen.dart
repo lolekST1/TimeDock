@@ -138,19 +138,27 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
   Future<void> _exportWorklog() async {
     await _run(() async {
       final range = ref.read(reportRangeProvider);
-      final rows = await ref
+      final result = await ref
           .read(worklogExportBuilderProvider)
-          .worklogRows(widget.workspaceId, range,
+          .worklogExport(widget.workspaceId, range,
               author: ref.read(settingsProvider).worklogAuthor);
-      if (rows.isEmpty) {
-        return 'Brak sesji do eksportu worklog.\nWłącz „Eksportuj do '
-            'rozliczenia czasu" dla tej przestrzeni i uzupełnij Jira ID zadań.';
+      final skipped = result.skippedNoJira;
+      final skippedNote = skipped == 0
+          ? ''
+          : '\nPominięto sesje bez Jira ID: $skipped — nie trafią do rozliczenia.';
+      if (result.rows.isEmpty) {
+        return skipped == 0
+            ? 'Brak sesji do eksportu worklog.\nWłącz „Eksportuj do rozliczenia '
+                'czasu" dla tej przestrzeni i uzupełnij Jira ID zadań.'
+            : 'Nie wyeksportowano żadnej sesji.$skippedNote\n'
+                'Uzupełnij Jira ID na zadaniach, aby trafiły do rozliczenia.';
       }
-      final json = WorklogExporter.toJson(rows);
+      final json = WorklogExporter.toJson(result.rows);
       final file = await ref
           .read(fileStoreProvider)
           .writeExport('timedock_worklog', 'json', json);
-      return 'Zapisano ${rows.length} pozycji worklog:\n${file.path}';
+      return 'Zapisano ${result.rows.length} pozycji worklog:\n'
+          '${file.path}$skippedNote';
     });
   }
 

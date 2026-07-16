@@ -133,6 +133,16 @@ class ExportBuilder {
   }
 }
 
+/// The outcome of a worklog export: the eligible rows plus how many finished,
+/// in-range sessions were dropped only because their task lacks a Jira id.
+/// The skipped count is surfaced in the UI so billable time isn't lost silently.
+class WorklogExportResult {
+  const WorklogExportResult({required this.rows, required this.skippedNoJira});
+
+  final List<WorklogRow> rows;
+  final int skippedNoJira;
+}
+
 /// Builds worklog rows for the timesheet export. Only sessions that are
 /// finished, belong to a workspace flagged with `exportsToTimesheet`, and whose
 /// task carries a non-empty Jira id are eligible — the exporter itself stays
@@ -173,16 +183,19 @@ class WorklogExportBuilder {
     return _taskJira[taskId] = task?.jiraId;
   }
 
-  /// Resolves and filters the workspace's sessions in [range] into worklog rows.
-  /// Returns an empty list when the workspace is not flagged for export.
+  /// Resolves and filters the workspace's sessions in [range] into worklog rows,
+  /// and counts finished in-range sessions dropped only for a missing Jira id.
+  /// Returns an empty result when the workspace is not flagged for export.
   ///
   /// [author] is the single configured worklog author for this installation,
   /// stamped onto every row so the downstream timesheet app knows whose time it
   /// is (TimeDock has no user model). A blank value is normalised to null.
-  Future<List<WorklogRow>> worklogRows(String workspaceId, ReportRange range,
-      {String? author}) async {
+  Future<WorklogExportResult> worklogExport(
+      String workspaceId, ReportRange range, {String? author}) async {
     final workspace = await workspaces.getById(workspaceId);
-    if (workspace == null || !workspace.exportsToTimesheet) return const [];
+    if (workspace == null || !workspace.exportsToTimesheet) {
+      return const WorklogExportResult(rows: [], skippedNoJira: 0);
+    }
     final trimmedAuthor = author?.trim() ?? '';
     final authorValue = trimmedAuthor.isEmpty ? null : trimmedAuthor;
 
@@ -191,6 +204,7 @@ class WorklogExportBuilder {
     final all = await sessions.listOverlappingRange(workspaceId, from, to);
 
     final rows = <WorklogRow>[];
+    var skippedNoJira = 0;
     for (final s in all) {
       if (s.isRunning) continue;
       final day =
@@ -199,6 +213,9 @@ class WorklogExportBuilder {
       final jiraId = await _jiraFor(s.taskId);
       if (!shouldExport(s,
           workspaceExports: workspace.exportsToTimesheet, jiraId: jiraId)) {
+        // Finished, in-range time that won't reach billing only because its
+        // task has no Jira id — counted so it isn't lost silently.
+        skippedNoJira++;
         continue;
       }
       rows.add(WorklogRow(
@@ -213,6 +230,6 @@ class WorklogExportBuilder {
       ));
     }
     rows.sort((a, b) => a.startUtc.compareTo(b.startUtc));
-    return rows;
+    return WorklogExportResult(rows: rows, skippedNoJira: skippedNoJira);
   }
 }

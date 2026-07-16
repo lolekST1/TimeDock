@@ -104,7 +104,7 @@ void main() {
   test('exports only finished, jira-tagged sessions when workspace opts in',
       () async {
     await setExportFlag(exports: true);
-    final rows = await builder.worklogRows('w1', range);
+    final rows = (await builder.worklogExport('w1', range)).rows;
     expect(rows, hasLength(1));
     final r = rows.single;
     expect(r.sessionId, 's1');
@@ -114,17 +114,27 @@ void main() {
     expect(r.workspace, 'Absysco');
   });
 
+  test('counts finished in-range sessions skipped for a missing Jira id',
+      () async {
+    await setExportFlag(exports: true);
+    // s2 (task without Jira) and s3 (no task) are skipped; s4 is running.
+    final result = await builder.worklogExport('w1', range);
+    expect(result.skippedNoJira, 2);
+  });
+
   test('exports nothing when the workspace is not flagged for export',
       () async {
     await setExportFlag(exports: false);
-    final rows = await builder.worklogRows('w1', range);
-    expect(rows, isEmpty);
+    final result = await builder.worklogExport('w1', range);
+    expect(result.rows, isEmpty);
+    expect(result.skippedNoJira, 0); // nothing scanned when opted out
   });
 
   test('stamps the configured author onto every row', () async {
     await setExportFlag(exports: true);
-    final rows =
-        await builder.worklogRows('w1', range, author: '  jan@absysco.com  ');
+    final rows = (await builder.worklogExport('w1', range,
+            author: '  jan@absysco.com  '))
+        .rows;
     expect(rows, hasLength(1));
     expect(rows.single.author, 'jan@absysco.com'); // trimmed
   });
@@ -132,7 +142,7 @@ void main() {
   test('a blank author is normalised to null', () async {
     await setExportFlag(exports: true);
     for (final author in [null, '', '   ']) {
-      final rows = await builder.worklogRows('w1', range, author: author);
+      final rows = (await builder.worklogExport('w1', range, author: author)).rows;
       expect(rows.single.author, isNull);
     }
   });
