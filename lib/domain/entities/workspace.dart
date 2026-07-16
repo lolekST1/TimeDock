@@ -9,6 +9,7 @@ class Workspace {
     this.sortOrder = 0,
     this.isArchived = false,
     this.weeklyGoalMinutes,
+    this.exportsToTimesheet = false,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -24,6 +25,10 @@ class Workspace {
   /// Optional weekly target in minutes; null means no goal set.
   final int? weeklyGoalMinutes;
 
+  /// When true, this workspace's finished sessions are eligible for the
+  /// worklog (timesheet) export — the future replacement for Tempo consumes it.
+  final bool exportsToTimesheet;
+
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -33,6 +38,7 @@ class Workspace {
     int? sortOrder,
     bool? isArchived,
     Object? weeklyGoalMinutes = _sentinel,
+    bool? exportsToTimesheet,
     DateTime? updatedAt,
   }) {
     return Workspace(
@@ -44,6 +50,7 @@ class Workspace {
       weeklyGoalMinutes: weeklyGoalMinutes == _sentinel
           ? this.weeklyGoalMinutes
           : weeklyGoalMinutes as int?,
+      exportsToTimesheet: exportsToTimesheet ?? this.exportsToTimesheet,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

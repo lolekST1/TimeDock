@@ -18,6 +18,7 @@ extension WorkspaceRowMapper on WorkspaceRow {
         sortOrder: sortOrder,
         isArchived: isArchived,
         weeklyGoalMinutes: weeklyGoalMinutes,
+        exportsToTimesheet: exportsToTimesheet,
         createdAt: _utc(createdAtMillis),
         updatedAt: _utc(updatedAtMillis),
       );
@@ -31,6 +32,7 @@ extension WorkspaceEntityMapper on Workspace {
         sortOrder: Value(sortOrder),
         isArchived: Value(isArchived),
         weeklyGoalMinutes: Value(weeklyGoalMinutes),
+        exportsToTimesheet: Value(exportsToTimesheet),
         createdAtMillis: Value(createdAt.millisecondsSinceEpoch),
         updatedAtMillis: Value(updatedAt.millisecondsSinceEpoch),
       );

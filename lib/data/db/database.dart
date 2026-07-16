@@ -11,7 +11,7 @@ class TimeDockDatabase extends _$TimeDockDatabase {
   TimeDockDatabase(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -23,6 +23,10 @@ class TimeDockDatabase extends _$TimeDockDatabase {
           // v2: per-workspace weekly goal.
           if (from < 2) {
             await m.addColumn(workspaces, workspaces.weeklyGoalMinutes);
+          }
+          // v3: per-workspace worklog (timesheet) export flag.
+          if (from < 3) {
+            await m.addColumn(workspaces, workspaces.exportsToTimesheet);
           }
         },
         beforeOpen: (details) async {

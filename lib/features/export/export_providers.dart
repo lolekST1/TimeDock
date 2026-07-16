@@ -13,6 +13,14 @@ final exportBuilderProvider = Provider<ExportBuilder>((ref) => ExportBuilder(
       sessions: ref.watch(sessionRepositoryProvider),
     ));
 
+final worklogExportBuilderProvider =
+    Provider<WorklogExportBuilder>((ref) => WorklogExportBuilder(
+          workspaces: ref.watch(workspaceRepositoryProvider),
+          projects: ref.watch(projectRepositoryProvider),
+          tasks: ref.watch(taskRepositoryProvider),
+          sessions: ref.watch(sessionRepositoryProvider),
+        ));
+
 final backupServiceProvider =
     Provider<BackupService>((ref) => BackupService(ref.watch(databaseProvider)));
 

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/services/csv_exporter.dart';
 import '../../domain/services/export_config.dart';
 import '../../domain/services/report_range.dart';
+import '../../domain/services/worklog_exporter.dart';
 import '../reports/report_providers.dart';
 import '../settings/settings_controller.dart';
 import 'export_providers.dart';
@@ -80,6 +81,12 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
             icon: const Icon(Icons.summarize_outlined),
             label: const Text('Eksportuj podsumowanie (CSV)'),
           ),
+          const SizedBox(height: 8),
+          FilledButton.tonalIcon(
+            onPressed: _busy ? null : _exportWorklog,
+            icon: const Icon(Icons.receipt_long_outlined),
+            label: const Text('Eksportuj worklog (JSON)'),
+          ),
           const Divider(height: 32),
           Text('Kopia zapasowa', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
@@ -124,6 +131,24 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
           .read(fileStoreProvider)
           .writeExport('timedock_podsumowanie', 'csv', csv);
       return 'Zapisano podsumowanie:\n${file.path}';
+    });
+  }
+
+  Future<void> _exportWorklog() async {
+    await _run(() async {
+      final range = ref.read(reportRangeProvider);
+      final rows = await ref
+          .read(worklogExportBuilderProvider)
+          .worklogRows(widget.workspaceId, range);
+      if (rows.isEmpty) {
+        return 'Brak sesji do eksportu worklog.\nWłącz „Eksportuj do '
+            'rozliczenia czasu" dla tej przestrzeni i uzupełnij Jira ID zadań.';
+      }
+      final json = WorklogExporter.toJson(rows);
+      final file = await ref
+          .read(fileStoreProvider)
+          .writeExport('timedock_worklog', 'json', json);
+      return 'Zapisano ${rows.length} pozycji worklog:\n${file.path}';
     });
   }
 

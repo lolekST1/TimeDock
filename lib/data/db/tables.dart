@@ -19,6 +19,10 @@ class Workspaces extends Table with AuditColumns {
   /// Optional weekly target in minutes (added in schema v2).
   IntColumn get weeklyGoalMinutes => integer().nullable()();
 
+  /// Marks the workspace for the worklog (timesheet) export (added in v3).
+  BoolColumn get exportsToTimesheet =>
+      boolean().withDefault(const Constant(false))();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }

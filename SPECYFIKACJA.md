@@ -129,6 +129,10 @@ Pola: `id`, `projectId`, `subProjectId?`, `name`, `jiraId?`, `note?`, `isArchive
 - Zadanie jest opcjonalne. Przykłady: `DAN-1234`, `BUG-887`, `Landing Page`.
 - **Numer Jira i opis zadania żyją wyłącznie na Task [v2]** — sesja ich nie
   duplikuje. Jedno zadanie ma wiele sesji.
+- **Walidacja `jiraId` [krok eksportu]:** pole pozostaje opcjonalne, ale jeśli
+  jest wypełnione, musi mieć format klucza Jira (`^[A-Z][A-Z0-9]+-\d+$`, np.
+  `ABS-123`). Walidator to czysta funkcja w domenie (`JiraIdValidator`); UI
+  tylko ją wywołuje. Pusty `jiraId` jest nadal dozwolony.
 
 ### 4.6. TimeSession
 
@@ -348,6 +352,14 @@ Główny przypadek użycia: **miesięczne zestawienie czasu dla pracodawcy/klien
   Separator i format godzin (dziesiętny `1,25` vs `1:15`) konfigurowalne.
 - **Zestawienie zagregowane (MVP)**: eksport widoku raportu (per projekt/zadanie,
   zsumowane) — to jest to, co faktycznie wysyła się klientowi.
+- **Worklog JSON [krok eksportu]**: lista obiektów, jeden na zakończoną sesję
+  (`sessionId`, `issueKey`, `startUtc`, `endUtc`, `durationSeconds`,
+  `description`, `workspace`), gotowa do dalszego przetwarzania przez przyszłą
+  aplikację rozliczeniową (następca Tempo). Eksportowane są tylko sesje z
+  przestrzeni oznaczonej flagą „Eksportuj do rozliczenia czasu" i tylko te,
+  których zadanie ma niepusty `jiraId`. To nadal offline: TimeDock produkuje
+  plik, nie łączy się z żadnym API — integracja z API Jira pozostaje poza
+  zakresem (§17).
 - **XLSX (po MVP)**: te same dane, arkusz sformatowany.
 - Opcjonalne **zaokrąglanie w eksporcie** (np. do 15 min w górę) — wyłącznie na
   poziomie eksportu; baza zawsze trzyma czas rzeczywisty.

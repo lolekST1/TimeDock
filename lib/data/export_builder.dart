@@ -7,6 +7,7 @@ import '../domain/repositories/workspace_repository.dart';
 import '../domain/services/csv_exporter.dart';
 import '../domain/services/report_range.dart';
 import '../domain/services/session_aggregator.dart';
+import '../domain/services/worklog_exporter.dart';
 
 /// Turns stored sessions (ids) into name-resolved export rows for a report
 /// range. Resolution is cached per id so a month export stays cheap.
@@ -129,5 +130,82 @@ class ExportBuilder {
       total: task.total,
       sessionCount: task.entries.length,
     );
+  }
+}
+
+/// Builds worklog rows for the timesheet export. Only sessions that are
+/// finished, belong to a workspace flagged with `exportsToTimesheet`, and whose
+/// task carries a non-empty Jira id are eligible — the exporter itself stays
+/// unaware of these rules. The eligibility rule lives in [shouldExport] so it
+/// can be tested without touching repositories.
+class WorklogExportBuilder {
+  WorklogExportBuilder({
+    required this.workspaces,
+    required this.projects,
+    required this.tasks,
+    required this.sessions,
+  });
+
+  final WorkspaceRepository workspaces;
+  final ProjectRepository projects;
+  final TaskRepository tasks;
+  final SessionRepository sessions;
+
+  final _taskJira = <String, String?>{};
+
+  /// The business rule, isolated for testing: a finished session whose task has
+  /// a non-empty Jira id, in a workspace opted into the timesheet export.
+  static bool shouldExport(
+    TimeSession session, {
+    required bool workspaceExports,
+    required String? jiraId,
+  }) {
+    if (!workspaceExports) return false;
+    if (session.isRunning) return false;
+    final key = jiraId?.trim() ?? '';
+    return key.isNotEmpty;
+  }
+
+  Future<String?> _jiraFor(String? taskId) async {
+    if (taskId == null) return null;
+    if (_taskJira.containsKey(taskId)) return _taskJira[taskId];
+    final task = await tasks.getById(taskId);
+    return _taskJira[taskId] = task?.jiraId;
+  }
+
+  /// Resolves and filters the workspace's sessions in [range] into worklog rows.
+  /// Returns an empty list when the workspace is not flagged for export.
+  Future<List<WorklogRow>> worklogRows(
+      String workspaceId, ReportRange range) async {
+    final workspace = await workspaces.getById(workspaceId);
+    if (workspace == null || !workspace.exportsToTimesheet) return const [];
+
+    final from = range.firstDay.subtract(const Duration(days: 1));
+    final to = range.lastDay.add(const Duration(days: 2));
+    final all = await sessions.listOverlappingRange(workspaceId, from, to);
+
+    final rows = <WorklogRow>[];
+    for (final s in all) {
+      final day = s.isRunning
+          ? null
+          : DateTime.utc(s.startLocal.year, s.startLocal.month, s.startLocal.day);
+      if (day == null || !range.contains(day)) continue;
+      final jiraId = await _jiraFor(s.taskId);
+      if (!shouldExport(s,
+          workspaceExports: workspace.exportsToTimesheet, jiraId: jiraId)) {
+        continue;
+      }
+      rows.add(WorklogRow(
+        sessionId: s.id,
+        issueKey: jiraId!.trim(),
+        startUtc: s.startUtc,
+        endUtc: s.endUtc!,
+        durationSeconds: s.duration.inSeconds,
+        description: s.comment,
+        workspace: workspace.name,
+      ));
+    }
+    rows.sort((a, b) => a.startUtc.compareTo(b.startUtc));
+    return rows;
   }
 }

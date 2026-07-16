@@ -27,6 +27,17 @@ class SettingsScreen extends ConsumerWidget {
       _thresholdOptions.reduce((a, b) =>
           (a - minutes).abs() <= (b - minutes).abs() ? a : b);
 
+  /// Summarises the workspace's weekly goal and worklog-export flag under its
+  /// name; null when neither is set so the tile stays single-line.
+  static Widget? _workspaceSubtitle(Workspace w) {
+    final parts = <String>[
+      if (w.weeklyGoalMinutes != null)
+        'Cel: ${w.weeklyGoalMinutes! ~/ 60} h / tydzień',
+      if (w.exportsToTimesheet) 'Eksport do rozliczenia czasu',
+    ];
+    return parts.isEmpty ? null : Text(parts.join(' · '));
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
@@ -110,9 +121,7 @@ class SettingsScreen extends ConsumerWidget {
               leading: CircleAvatar(
                   radius: 10, backgroundColor: Color(w.colorSeed)),
               title: Text(w.name),
-              subtitle: w.weeklyGoalMinutes != null
-                  ? Text('Cel: ${w.weeklyGoalMinutes! ~/ 60} h / tydzień')
-                  : null,
+              subtitle: _workspaceSubtitle(w),
               trailing: PopupMenuButton<String>(
                 onSelected: (action) =>
                     _onWorkspaceAction(context, ref, w, action, workspaces.length),
@@ -121,6 +130,11 @@ class SettingsScreen extends ConsumerWidget {
                   const PopupMenuItem(value: 'color', child: Text('Zmień kolor')),
                   const PopupMenuItem(
                       value: 'goal', child: Text('Cel tygodniowy')),
+                  CheckedPopupMenuItem(
+                    value: 'timesheet',
+                    checked: w.exportsToTimesheet,
+                    child: const Text('Eksportuj do rozliczenia czasu'),
+                  ),
                   if (workspaces.length > 1)
                     const PopupMenuItem(
                         value: 'archive', child: Text('Archiwizuj')),
@@ -210,6 +224,11 @@ class SettingsScreen extends ConsumerWidget {
             updatedAt: now,
           ));
         }
+      case 'timesheet':
+        await repo.upsert(workspace.copyWith(
+          exportsToTimesheet: !workspace.exportsToTimesheet,
+          updatedAt: now,
+        ));
       case 'archive':
         // Never archive the last active workspace; move selection away first.
         if (activeCount <= 1) return;

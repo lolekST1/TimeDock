@@ -6,6 +6,7 @@ import '../../data/providers.dart';
 import '../../data/session_editor.dart';
 import '../../domain/entities/time_session.dart';
 import '../../domain/repositories/session_repository.dart';
+import '../../domain/services/jira_id_validator.dart';
 import '../app_state/context_label.dart';
 import '../timer/context_picker.dart';
 import 'history_providers.dart';
@@ -163,12 +164,14 @@ class _SessionEditorScreenState extends ConsumerState<SessionEditorScreen> {
           const SizedBox(height: 8),
           TextField(
             controller: _jiraController,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Jira ID',
               hintText: 'np. DAN-1234',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.tag),
+              border: const OutlineInputBorder(),
+              prefixIcon: const Icon(Icons.tag),
+              errorText: JiraIdValidator.validate(_jiraController.text),
             ),
+            onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 8),
           TextField(
@@ -226,6 +229,10 @@ class _SessionEditorScreenState extends ConsumerState<SessionEditorScreen> {
     }
     if (!_endLocal.isAfter(_startLocal)) {
       _snack('Koniec musi być po początku.');
+      return;
+    }
+    if (!JiraIdValidator.isValid(_jiraController.text)) {
+      _snack('Nieprawidłowy format Jira ID (np. ABS-123).');
       return;
     }
 

@@ -7,6 +7,7 @@ import '../../data/providers.dart';
 import '../../domain/entities/time_session.dart';
 import '../../domain/repositories/session_repository.dart';
 import '../../domain/services/forgotten_timer.dart';
+import '../../domain/services/jira_id_validator.dart';
 import '../app_state/app_providers.dart';
 import '../app_state/context_label.dart';
 import '../history/history_providers.dart';
@@ -64,6 +65,8 @@ class _ActiveTimerScreenState extends ConsumerState<ActiveTimerScreen> {
   /// without restarting the clock. No-op when both fields are empty and there
   /// was no task before.
   Future<void> _saveTask(TimeSession session) async {
+    // Don't persist a malformed Jira id; the field shows the validation error.
+    if (!JiraIdValidator.isValid(_jiraController.text)) return;
     final taskId = await ref.read(taskQuickAddProvider).findOrCreate(
           projectId: session.projectId,
           subProjectId: session.subProjectId,
@@ -176,12 +179,14 @@ class _ActiveTimerScreenState extends ConsumerState<ActiveTimerScreen> {
                   const SizedBox(height: 12),
                   TextField(
                     controller: _jiraController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Jira ID',
                       hintText: 'np. DAN-1234',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.tag),
+                      border: const OutlineInputBorder(),
+                      prefixIcon: const Icon(Icons.tag),
+                      errorText: JiraIdValidator.validate(_jiraController.text),
                     ),
+                    onChanged: (_) => setState(() {}),
                     onEditingComplete: () {
                       _saveTask(session);
                       FocusScope.of(context).unfocus();

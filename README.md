@@ -79,13 +79,15 @@ flutter analyze
 flutter test
 ```
 
-Pokrycie (118 testów): reguły czasowe (północ/DST), migracja bazy v1→v2,
-walidacja kolizji,
+Pokrycie (142 testów): reguły czasowe (północ/DST), migracje bazy v1→v2 i
+v2→v3, walidacja kolizji,
 agregacja raportów, reguła jednego timera + odtwarzanie po restarcie,
 zapomniany timer, oś dnia, podział/edycja sesji (w tym auto-przycięcie i
-konflikty), tworzenie zadań „w locie", zakresy raportów, statystyki
+konflikty), tworzenie zadań „w locie", walidacja formatu Jira ID, zakresy
+raportów, statystyki
 (Focus Score, przełączenia, czas niezmierzony), format/zaokrąglanie i
-serializacja CSV, round-trip i idempotencja backupu, ustawienia
+serializacja CSV, serializacja i filtrowanie eksportu worklog (JSON),
+round-trip i idempotencja backupu, ustawienia
 (persystencja, mapowanie na domenę), zakresy custom i cele tygodniowe;
 widget-testy: start 1-tap, edycja sesji, grupowanie w raporcie,
 statystyki, ustawienia.
@@ -102,6 +104,7 @@ statystyki, ustawienia.
 | 5 | Raporty z drill-downem | ✅ |
 | 6 | Eksport CSV + backup JSON | ✅ (share/file-picker odroczone) |
 | 7 | Dopracowanie (haptyka, README) | ✅ (natywny widget odroczony) |
+| 8 | Przygotowanie eksportu worklog (flaga workspace, walidacja Jira, JSON) | ✅ (bez sieci; §17 nadal poza zakresem) |
 
 ### Elementy odroczone (wymagają urządzenia/wtyczek)
 

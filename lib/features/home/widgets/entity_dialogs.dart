@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../domain/services/jira_id_validator.dart';
+
 /// Simple name prompt used for projects and sub-projects.
 Future<String?> promptForName(
   BuildContext context, {
@@ -41,32 +43,82 @@ class TaskInput {
   final String? jiraId;
 }
 
-/// Task prompt: name plus optional Jira id.
+/// Task prompt: name plus optional Jira id. The Jira id, when non-empty, is
+/// validated against the format (`ABS-123`) via the pure domain validator.
 Future<TaskInput?> promptForTask(
   BuildContext context, {
   String? initialName,
   String? initialJira,
 }) {
-  final nameController = TextEditingController(text: initialName);
-  final jiraController = TextEditingController(text: initialJira);
   return showDialog<TaskInput>(
     context: context,
-    builder: (context) => AlertDialog(
+    builder: (context) => _TaskDialog(
+      initialName: initialName,
+      initialJira: initialJira,
+    ),
+  );
+}
+
+class _TaskDialog extends StatefulWidget {
+  const _TaskDialog({this.initialName, this.initialJira});
+
+  final String? initialName;
+  final String? initialJira;
+
+  @override
+  State<_TaskDialog> createState() => _TaskDialogState();
+}
+
+class _TaskDialogState extends State<_TaskDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _nameController =
+      TextEditingController(text: widget.initialName);
+  late final TextEditingController _jiraController =
+      TextEditingController(text: widget.initialJira);
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _jiraController.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    if (!_formKey.currentState!.validate()) return;
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      Navigator.of(context).pop();
+      return;
+    }
+    final jira = _jiraController.text.trim();
+    Navigator.of(context)
+        .pop(TaskInput(name: name, jiraId: jira.isEmpty ? null : jira));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
       title: const Text('Zadanie'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: nameController,
-            autofocus: true,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(labelText: 'Nazwa'),
-          ),
-          TextField(
-            controller: jiraController,
-            decoration: const InputDecoration(labelText: 'Jira ID (opcjonalnie)'),
-          ),
-        ],
+      content: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextFormField(
+              controller: _nameController,
+              autofocus: true,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(labelText: 'Nazwa'),
+            ),
+            TextFormField(
+              controller: _jiraController,
+              decoration:
+                  const InputDecoration(labelText: 'Jira ID (opcjonalnie)'),
+              autovalidateMode: AutovalidateMode.onUserInteraction,
+              validator: JiraIdValidator.validate,
+            ),
+          ],
+        ),
       ),
       actions: [
         TextButton(
@@ -74,19 +126,10 @@ Future<TaskInput?> promptForTask(
           child: const Text('Anuluj'),
         ),
         FilledButton(
-          onPressed: () {
-            final name = nameController.text.trim();
-            if (name.isEmpty) {
-              Navigator.of(context).pop();
-              return;
-            }
-            final jira = jiraController.text.trim();
-            Navigator.of(context)
-                .pop(TaskInput(name: name, jiraId: jira.isEmpty ? null : jira));
-          },
+          onPressed: _save,
           child: const Text('Zapisz'),
         ),
       ],
-    ),
-  );
+    );
+  }
 }
