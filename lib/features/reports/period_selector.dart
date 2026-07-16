@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/time_format.dart';
 import '../../domain/services/report_range.dart';
 import 'report_providers.dart';
 
@@ -102,14 +103,12 @@ class PeriodSelector extends ConsumerWidget {
   }
 
   String _rangeLabel(ReportPeriod period, ReportRange range) {
-    String d(DateTime x) =>
-        '${x.day.toString().padLeft(2, '0')}.${x.month.toString().padLeft(2, '0')}';
     switch (period) {
       case ReportPeriod.day:
-        return '${d(range.firstDay)}.${range.firstDay.year}';
+        return '${formatDayMonth(range.firstDay)}.${range.firstDay.year}';
       case ReportPeriod.week:
       case ReportPeriod.custom:
-        return '${d(range.firstDay)} – ${d(range.lastDay)}';
+        return '${formatDayMonth(range.firstDay)} – ${formatDayMonth(range.lastDay)}';
       case ReportPeriod.month:
         const months = [
           'sty', 'lut', 'mar', 'kwi', 'maj', 'cze',

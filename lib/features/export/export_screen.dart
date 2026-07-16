@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide HourFormat;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/time_format.dart';
 import '../../domain/services/csv_exporter.dart';
 import '../../domain/services/export_config.dart';
 import '../../domain/services/report_range.dart';
@@ -196,11 +197,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
         ReportPeriod.custom => 'Zakres',
       };
 
-  String _rangeText(ReportRange r) {
-    String d(DateTime x) =>
-        '${x.year}-${x.month.toString().padLeft(2, '0')}-${x.day.toString().padLeft(2, '0')}';
-    return r.firstDay == r.lastDay
-        ? d(r.firstDay)
-        : '${d(r.firstDay)} – ${d(r.lastDay)}';
-  }
+  String _rangeText(ReportRange r) => r.firstDay == r.lastDay
+      ? formatIsoDate(r.firstDay)
+      : '${formatIsoDate(r.firstDay)} – ${formatIsoDate(r.lastDay)}';
 }

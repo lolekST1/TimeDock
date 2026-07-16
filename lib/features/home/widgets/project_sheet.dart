@@ -112,7 +112,7 @@ class _ProjectSheet extends ConsumerWidget {
             ],
             _SectionHeader(
               title: 'Zadania',
-              onAdd: () => _addTask(context, ref, null),
+              onAdd: () => _createTask(context, ref, projectId: project.id),
             ),
             for (final task in tasks.where((t) => t.subProjectId == null))
               _TaskTile(project: project, task: task),
@@ -140,27 +140,34 @@ class _ProjectSheet extends ConsumerWidget {
         ));
   }
 
-  Future<void> _addTask(
-      BuildContext context, WidgetRef ref, String? subProjectId) async {
-    final result = await promptForTask(context);
-    if (result == null) return;
-    final now = DateTime.now().toUtc();
-    await ref.read(taskRepositoryProvider).upsert(Task(
-          id: const Uuid().v4(),
-          projectId: project.id,
-          subProjectId: subProjectId,
-          name: result.name,
-          jiraId: result.jiraId,
-          createdAt: now,
-          updatedAt: now,
-        ));
-  }
 }
 
 Future<void> _startAndClose(
     BuildContext context, WidgetRef ref, SessionContext ctx) async {
   await ref.read(timerServiceProvider).start(ctx);
   if (context.mounted) Navigator.of(context).pop();
+}
+
+/// Prompts for a task and persists it under the project (optionally under a
+/// sub-project). Shared by the project-level and sub-project-level "add task".
+Future<void> _createTask(
+  BuildContext context,
+  WidgetRef ref, {
+  required String projectId,
+  String? subProjectId,
+}) async {
+  final result = await promptForTask(context);
+  if (result == null) return;
+  final now = DateTime.now().toUtc();
+  await ref.read(taskRepositoryProvider).upsert(Task(
+        id: const Uuid().v4(),
+        projectId: projectId,
+        subProjectId: subProjectId,
+        name: result.name,
+        jiraId: result.jiraId,
+        createdAt: now,
+        updatedAt: now,
+      ));
 }
 
 class _SectionHeader extends StatelessWidget {
@@ -232,27 +239,14 @@ class _SubProjectTile extends ConsumerWidget {
           dense: true,
           leading: const Icon(Icons.add),
           title: const Text('Dodaj zadanie'),
-          onTap: () => _addTaskToSubProject(context, ref),
+          onTap: () =>
+              _createTask(context, ref, projectId: project.id,
+                  subProjectId: subProject.id),
         ),
       ],
     );
   }
 
-  Future<void> _addTaskToSubProject(
-      BuildContext context, WidgetRef ref) async {
-    final result = await promptForTask(context);
-    if (result == null) return;
-    final now = DateTime.now().toUtc();
-    await ref.read(taskRepositoryProvider).upsert(Task(
-          id: const Uuid().v4(),
-          projectId: project.id,
-          subProjectId: subProject.id,
-          name: result.name,
-          jiraId: result.jiraId,
-          createdAt: now,
-          updatedAt: now,
-        ));
-  }
 
   Future<void> _onAction(
       BuildContext context, WidgetRef ref, String action) async {

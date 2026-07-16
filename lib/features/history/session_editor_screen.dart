@@ -407,8 +407,7 @@ class _TimeRow extends StatelessWidget {
                     OutlinedButton.icon(
                       icon: const Icon(Icons.calendar_today, size: 16),
                       onPressed: () => _pickDate(context),
-                      label: Text(
-                          '${value.year}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}'),
+                      label: Text(formatIsoDate(value)),
                     ),
                     OutlinedButton.icon(
                       icon: const Icon(Icons.schedule, size: 16),

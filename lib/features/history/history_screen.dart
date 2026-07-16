@@ -61,9 +61,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 TextButton(
                   onPressed: _isToday ? null : () => _shiftDay(_daysToToday()),
                   child: Text(
-                    _isToday
-                        ? 'Dziś'
-                        : '${_day.year}-${_day.month.toString().padLeft(2, '0')}-${_day.day.toString().padLeft(2, '0')}',
+                    _isToday ? 'Dziś' : formatIsoDate(_day),
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),

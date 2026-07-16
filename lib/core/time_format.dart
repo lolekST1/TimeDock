@@ -24,3 +24,17 @@ String formatTimeOfDay(DateTime local) {
   final m = local.minute.toString().padLeft(2, '0');
   return '$h:$m';
 }
+
+/// `2026-07-16` — ISO calendar date, used by exports and day headers.
+String formatIsoDate(DateTime date) {
+  final m = date.month.toString().padLeft(2, '0');
+  final d = date.day.toString().padLeft(2, '0');
+  return '${date.year}-$m-$d';
+}
+
+/// `16.07` — day and month, used by report range labels.
+String formatDayMonth(DateTime date) {
+  final d = date.day.toString().padLeft(2, '0');
+  final m = date.month.toString().padLeft(2, '0');
+  return '$d.$m';
+}

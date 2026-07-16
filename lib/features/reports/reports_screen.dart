@@ -183,8 +183,7 @@ class _TaskNodeTile extends ConsumerWidget {
   String _sessionLabel(SessionEntry entry) {
     final start = entry.session.startLocal;
     final end = entry.session.endLocal;
-    final date =
-        '${start.day.toString().padLeft(2, '0')}.${start.month.toString().padLeft(2, '0')}';
+    final date = formatDayMonth(start);
     final range = end == null
         ? formatTimeOfDay(start)
         : '${formatTimeOfDay(start)}–${formatTimeOfDay(end)}';
