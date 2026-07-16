@@ -79,12 +79,12 @@ flutter analyze
 flutter test
 ```
 
-Pokrycie (149 testów): reguły czasowe (północ/DST), migracje bazy v1→v2 i
+Pokrycie (154 testów): reguły czasowe (północ/DST), migracje bazy v1→v2 i
 v2→v3, walidacja kolizji,
 agregacja raportów, reguła jednego timera + odtwarzanie po restarcie,
 zapomniany timer, oś dnia, podział/edycja sesji (w tym auto-przycięcie i
-konflikty), tworzenie zadań „w locie", walidacja formatu Jira ID, zakresy
-raportów, statystyki
+konflikty), tworzenie zadań „w locie", walidacja i normalizacja (wielkie litery)
+formatu Jira ID, zakresy raportów, statystyki
 (Focus Score, przełączenia, czas niezmierzony), format/zaokrąglanie i
 serializacja CSV, serializacja i filtrowanie eksportu worklog (JSON) wraz
 z autorem i liczbą sesji pominiętych bez Jira ID, round-trip i idempotencja backupu, ustawienia

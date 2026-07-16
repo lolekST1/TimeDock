@@ -17,8 +17,9 @@ tekstowe wpisywane ręcznie.
    każdego wiersza eksportu (pole `author`), żeby aplikacja rozliczeniowa
    wiedziała, od kogo pochodzi czas. Puste = pole `author` będzie `null`.
 3. Uzupełnij `jiraId` na zadaniach, których czas ma trafić do rozliczenia
-   (np. `ABS-123`). Pole jest walidowane formatem `^[A-Z][A-Z0-9]+-\d+$`;
-   puste zadania są pomijane w eksporcie.
+   (np. `ABS-123`, `MM-2435`, `EMS2-1203`). Pole jest walidowane formatem
+   `^[A-Z][A-Z0-9]+-\d+$`; małe litery są automatycznie zamieniane na wielkie.
+   Puste zadania są pomijane w eksporcie.
 4. Na **ekranie eksportu** ustaw zakres (dzień / tydzień / miesiąc — ten sam
    selektor co w raportach) i wybierz **„Eksportuj worklog (JSON)"**.
 5. Powstaje plik `timedock_worklog_<timestamp>.json` w prywatnym katalogu

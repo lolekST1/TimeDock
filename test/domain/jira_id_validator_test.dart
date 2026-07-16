@@ -10,6 +10,12 @@ void main() {
       expect(JiraIdValidator.isValid('A1B2-9'), isTrue); // digits in prefix
     });
 
+    test('accepts both real project shapes (MM-2435 and EMS2-1203)', () {
+      expect(JiraIdValidator.isValid('MM-2435'), isTrue);
+      expect(JiraIdValidator.isValid('EMS2-12'), isTrue);
+      expect(JiraIdValidator.isValid('EMS2-1203'), isTrue);
+    });
+
     test('treats empty, null and whitespace as allowed (field is optional)', () {
       expect(JiraIdValidator.isValid(null), isTrue);
       expect(JiraIdValidator.isValid(''), isTrue);
@@ -20,9 +26,10 @@ void main() {
       expect(JiraIdValidator.isValid('  ABS-123  '), isTrue);
     });
 
-    test('rejects lower-case letters in the prefix', () {
-      expect(JiraIdValidator.isValid('abs-123'), isFalse);
-      expect(JiraIdValidator.isValid('Abs-123'), isFalse);
+    test('accepts lower-case entry (it is corrected to upper case)', () {
+      expect(JiraIdValidator.isValid('abs-123'), isTrue);
+      expect(JiraIdValidator.isValid('Abs-123'), isTrue);
+      expect(JiraIdValidator.isValid('ems2-1203'), isTrue);
     });
 
     test('rejects a missing hyphen', () {
@@ -48,15 +55,30 @@ void main() {
     });
   });
 
+  group('JiraIdValidator.normalize', () {
+    test('trims and upper-cases', () {
+      expect(JiraIdValidator.normalize('abs-123'), 'ABS-123');
+      expect(JiraIdValidator.normalize('  ems2-1203  '), 'EMS2-1203');
+      expect(JiraIdValidator.normalize('MM-2435'), 'MM-2435');
+    });
+
+    test('null or blank yields an empty string', () {
+      expect(JiraIdValidator.normalize(null), '');
+      expect(JiraIdValidator.normalize('   '), '');
+    });
+  });
+
   group('JiraIdValidator.validate', () {
     test('returns null for allowed values', () {
       expect(JiraIdValidator.validate('ABS-123'), isNull);
+      expect(JiraIdValidator.validate('abs-123'), isNull); // corrected to upper
       expect(JiraIdValidator.validate(''), isNull);
       expect(JiraIdValidator.validate(null), isNull);
     });
 
     test('returns an error message for malformed values', () {
-      expect(JiraIdValidator.validate('abs-123'), isNotNull);
+      expect(JiraIdValidator.validate('ABS 123'), isNotNull);
+      expect(JiraIdValidator.validate('nonsense'), isNotNull);
     });
   });
 }

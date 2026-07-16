@@ -131,8 +131,11 @@ Pola: `id`, `projectId`, `subProjectId?`, `name`, `jiraId?`, `note?`, `isArchive
   duplikuje. Jedno zadanie ma wiele sesji.
 - **Walidacja `jiraId` [krok eksportu]:** pole pozostaje opcjonalne, ale jeśli
   jest wypełnione, musi mieć format klucza Jira (`^[A-Z][A-Z0-9]+-\d+$`, np.
-  `ABS-123`). Walidator to czysta funkcja w domenie (`JiraIdValidator`); UI
-  tylko ją wywołuje. Pusty `jiraId` jest nadal dozwolony.
+  `ABS-123`, `MM-2435`, `EMS2-1203`). Walidator to czysta funkcja w domenie
+  (`JiraIdValidator`); UI tylko ją wywołuje. Klucze są przechowywane wielkimi
+  literami — wpis małymi (`abs-123`) jest **automatycznie korygowany na wielkie**
+  (na żywo w polu oraz przy zapisie), a nie odrzucany. Pusty `jiraId` jest nadal
+  dozwolony.
 
 ### 4.6. TimeSession
 

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/ticker.dart';
 import '../../core/time_format.dart';
+import '../../core/upper_case_formatter.dart';
 import '../../data/providers.dart';
 import '../../domain/entities/time_session.dart';
 import '../../domain/repositories/session_repository.dart';
@@ -71,7 +72,7 @@ class _ActiveTimerScreenState extends ConsumerState<ActiveTimerScreen> {
           projectId: session.projectId,
           subProjectId: session.subProjectId,
           name: _taskController.text,
-          jiraId: _jiraController.text,
+          jiraId: JiraIdValidator.normalize(_jiraController.text),
         );
     if (taskId == null && session.taskId == null) return;
     if (taskId == session.taskId) return;
@@ -179,6 +180,7 @@ class _ActiveTimerScreenState extends ConsumerState<ActiveTimerScreen> {
                   const SizedBox(height: 12),
                   TextField(
                     controller: _jiraController,
+                    inputFormatters: const [UpperCaseTextFormatter()],
                     decoration: InputDecoration(
                       labelText: 'Jira ID',
                       hintText: 'np. DAN-1234',

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/upper_case_formatter.dart';
 import '../../../domain/services/jira_id_validator.dart';
 
 /// Simple name prompt used for projects and sub-projects.
@@ -90,7 +91,7 @@ class _TaskDialogState extends State<_TaskDialog> {
       Navigator.of(context).pop();
       return;
     }
-    final jira = _jiraController.text.trim();
+    final jira = JiraIdValidator.normalize(_jiraController.text);
     Navigator.of(context)
         .pop(TaskInput(name: name, jiraId: jira.isEmpty ? null : jira));
   }
@@ -112,6 +113,7 @@ class _TaskDialogState extends State<_TaskDialog> {
             ),
             TextFormField(
               controller: _jiraController,
+              inputFormatters: const [UpperCaseTextFormatter()],
               decoration:
                   const InputDecoration(labelText: 'Jira ID (opcjonalnie)'),
               autovalidateMode: AutovalidateMode.onUserInteraction,

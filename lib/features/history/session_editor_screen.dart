@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/time_format.dart';
+import '../../core/upper_case_formatter.dart';
 import '../../data/providers.dart';
 import '../../data/session_editor.dart';
 import '../../domain/entities/time_session.dart';
@@ -164,6 +165,7 @@ class _SessionEditorScreenState extends ConsumerState<SessionEditorScreen> {
           const SizedBox(height: 8),
           TextField(
             controller: _jiraController,
+            inputFormatters: const [UpperCaseTextFormatter()],
             decoration: InputDecoration(
               labelText: 'Jira ID',
               hintText: 'np. DAN-1234',
@@ -241,7 +243,7 @@ class _SessionEditorScreenState extends ConsumerState<SessionEditorScreen> {
           projectId: _context.projectId,
           subProjectId: _context.subProjectId,
           name: _taskController.text,
-          jiraId: _jiraController.text,
+          jiraId: JiraIdValidator.normalize(_jiraController.text),
         );
 
     final editor = ref.read(sessionEditorProvider);
