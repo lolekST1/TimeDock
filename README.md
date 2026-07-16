@@ -114,7 +114,7 @@ przetestowana; poniższe to integracje platformowe do wykonania na urządzeniu:
 - Natywny foreground service + notyfikacja z licznikiem — [`docs/foreground_service.md`](docs/foreground_service.md)
 - Widget ekranu głównego i kafelek Quick Settings
 - Share sheet, przywracanie z dowolnego pliku, backup do Google Drive, XLSX — [`docs/export_backup.md`](docs/export_backup.md)
-- Wysyłka worklog do aplikacji rozliczeniowej (sieć/endpoint/tożsamość autora) — [`docs/worklog_export.md`](docs/worklog_export.md)
+- Wysyłka worklog do aplikacji rozliczeniowej (warstwa sieciowa/endpoint) — [`docs/worklog_export.md`](docs/worklog_export.md)
 
 ## Kryteria akceptacji UX (§14 specyfikacji)
 

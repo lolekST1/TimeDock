@@ -79,8 +79,9 @@ Uwagi dla konsumenta:
 
 Gdy powstanie warstwa sieciowa, ten sam potok da się wywołać bez UI:
 
-- `WorklogExportBuilder.worklogRows(workspaceId, range)` — pobiera z
-  repozytoriów, filtruje regułą wyżej i zwraca `List<WorklogRow>`.
+- `WorklogExportBuilder.worklogRows(workspaceId, range, {author})` — pobiera
+  z repozytoriów, filtruje regułą wyżej, stempluje `author` i zwraca
+  `List<WorklogRow>`.
 - `WorklogExporter.toJson(rows)` — czysta serializacja do stringa JSON.
 
 Cała logika wpływająca na poprawność danych jest w warstwie `domain`/`data`

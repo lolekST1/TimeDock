@@ -183,8 +183,8 @@ class WorklogExportBuilder {
       {String? author}) async {
     final workspace = await workspaces.getById(workspaceId);
     if (workspace == null || !workspace.exportsToTimesheet) return const [];
-    final authorValue =
-        (author?.trim().isEmpty ?? true) ? null : author!.trim();
+    final trimmedAuthor = author?.trim() ?? '';
+    final authorValue = trimmedAuthor.isEmpty ? null : trimmedAuthor;
 
     final from = range.firstDay.subtract(const Duration(days: 1));
     final to = range.lastDay.add(const Duration(days: 2));
@@ -192,10 +192,10 @@ class WorklogExportBuilder {
 
     final rows = <WorklogRow>[];
     for (final s in all) {
-      final day = s.isRunning
-          ? null
-          : DateTime.utc(s.startLocal.year, s.startLocal.month, s.startLocal.day);
-      if (day == null || !range.contains(day)) continue;
+      if (s.isRunning) continue;
+      final day =
+          DateTime.utc(s.startLocal.year, s.startLocal.month, s.startLocal.day);
+      if (!range.contains(day)) continue;
       final jiraId = await _jiraFor(s.taskId);
       if (!shouldExport(s,
           workspaceExports: workspace.exportsToTimesheet, jiraId: jiraId)) {
