@@ -23,24 +23,19 @@ class NoopFileSharer implements FileSharer {
 }
 
 /// Shares via `share_plus`. Works on Android (first target) and cross-platform.
+/// The MIME type is left to share_plus to infer from the file extension
+/// (`application/json`, `text/csv`) so receivers advertise the right type and
+/// "open with" filtering works. Known cosmetic quirk: Notion re-appends the
+/// extension it maps from that type, yielding `foo.json.json`; other targets
+/// keep the correct single-extension name, so this is left as-is.
 /// Note: iPad would additionally need `sharePositionOrigin`; not set here as
 /// Android is the only shipping platform.
 class SharePlusFileSharer implements FileSharer {
   const SharePlusFileSharer();
 
-  /// Generic MIME type used on purpose. The written file already carries the
-  /// correct single extension (`.json`/`.csv`); with a specific MIME
-  /// (`application/json`, `text/csv`) some Android receivers re-append the
-  /// extension they map from that type, producing `foo.json.json`. A generic
-  /// type has no such mapping, so the receiver keeps the real filename. Target
-  /// apps still open the file by its extension.
-  static const _genericMimeType = '*/*';
-
   @override
   Future<void> shareFile(String path, {String? subject}) async {
-    await SharePlus.instance.share(ShareParams(
-      files: [XFile(path, mimeType: _genericMimeType)],
-      subject: subject,
-    ));
+    await SharePlus.instance
+        .share(ShareParams(files: [XFile(path)], subject: subject));
   }
 }
