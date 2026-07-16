@@ -20,6 +20,11 @@
   katalog aplikacji jest prywatny, więc to jest sposób, w jaki plik opuszcza
   urządzenie. Integracja za interfejsem `FileSharer` (Noop dla testów, jak
   `ReminderScheduler`); build Androida weryfikuje workflow **Build APK**.
+  Plik jest udostępniany z **ogólnym typem MIME (`*/*`)** celowo: nazwa pliku
+  ma już poprawne, pojedyncze rozszerzenie, a przy konkretnym MIME
+  (`application/json`, `text/csv`) część odbiorców na Androidzie dokleja
+  rozszerzenie zmapowane z tego typu, dając `foo.json.json`. Typ ogólny nie ma
+  takiego mapowania — nie zmieniaj tego bez weryfikacji na urządzeniu.
 - **UI** (`ExportScreen`): eksport CSV (sesje / podsumowanie), worklog JSON i
   kopia zapasowa dla zakresu raportu, przywracanie z ostatniej kopii.
 

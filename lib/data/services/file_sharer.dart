@@ -28,9 +28,19 @@ class NoopFileSharer implements FileSharer {
 class SharePlusFileSharer implements FileSharer {
   const SharePlusFileSharer();
 
+  /// Generic MIME type used on purpose. The written file already carries the
+  /// correct single extension (`.json`/`.csv`); with a specific MIME
+  /// (`application/json`, `text/csv`) some Android receivers re-append the
+  /// extension they map from that type, producing `foo.json.json`. A generic
+  /// type has no such mapping, so the receiver keeps the real filename. Target
+  /// apps still open the file by its extension.
+  static const _genericMimeType = '*/*';
+
   @override
   Future<void> shareFile(String path, {String? subject}) async {
-    await SharePlus.instance
-        .share(ShareParams(files: [XFile(path)], subject: subject));
+    await SharePlus.instance.share(ShareParams(
+      files: [XFile(path, mimeType: _genericMimeType)],
+      subject: subject,
+    ));
   }
 }
