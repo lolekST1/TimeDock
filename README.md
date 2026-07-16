@@ -102,7 +102,7 @@ statystyki, ustawienia.
 | 3 | Ekran timera, zapomniany timer, seam service | ✅ (natywny service odroczony) |
 | 4 | Historia + edycja/dodawanie/podział sesji | ✅ |
 | 5 | Raporty z drill-downem | ✅ |
-| 6 | Eksport CSV + backup JSON | ✅ (share/file-picker odroczone) |
+| 6 | Eksport CSV + backup JSON | ✅ (share sheet gotowy; wybór dowolnego pliku odroczony) |
 | 7 | Dopracowanie (haptyka, README) | ✅ (natywny widget odroczony) |
 | 8 | Przygotowanie eksportu worklog (flaga workspace, walidacja Jira, JSON) | ✅ (bez sieci; §17 nadal poza zakresem) — [`docs/worklog_export.md`](docs/worklog_export.md) |
 
@@ -113,7 +113,7 @@ przetestowana; poniższe to integracje platformowe do wykonania na urządzeniu:
 
 - Natywny foreground service + notyfikacja z licznikiem — [`docs/foreground_service.md`](docs/foreground_service.md)
 - Widget ekranu głównego i kafelek Quick Settings
-- Share sheet, przywracanie z dowolnego pliku, backup do Google Drive, XLSX — [`docs/export_backup.md`](docs/export_backup.md)
+- Przywracanie z dowolnego pliku, backup do Google Drive, XLSX — [`docs/export_backup.md`](docs/export_backup.md)
 - Wysyłka worklog do aplikacji rozliczeniowej (warstwa sieciowa/endpoint) — [`docs/worklog_export.md`](docs/worklog_export.md)
 
 ## Kryteria akceptacji UX (§14 specyfikacji)

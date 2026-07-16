@@ -4,6 +4,7 @@ import '../../data/backup_service.dart';
 import '../../data/export_builder.dart';
 import '../../data/file_store.dart';
 import '../../data/providers.dart';
+import '../../data/services/file_sharer.dart';
 
 final exportBuilderProvider = Provider<ExportBuilder>((ref) => ExportBuilder(
       workspaces: ref.watch(workspaceRepositoryProvider),
@@ -25,3 +26,6 @@ final backupServiceProvider =
     Provider<BackupService>((ref) => BackupService(ref.watch(databaseProvider)));
 
 final fileStoreProvider = Provider<FileStore>((ref) => const FileStore());
+
+final fileSharerProvider =
+    Provider<FileSharer>((ref) => const SharePlusFileSharer());

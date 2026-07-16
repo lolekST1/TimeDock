@@ -5,8 +5,9 @@ import 'package:path_provider/path_provider.dart';
 /// Writes exports and rotating backups to the app's documents directory.
 ///
 /// This is the thin platform-IO layer; all content generation (CSV/JSON) is
-/// pure and tested elsewhere. Sharing the produced file via the OS share sheet
-/// is a follow-up that needs a share plugin (see docs/export_backup.md).
+/// pure and tested elsewhere. The documents directory is app-private, so the
+/// produced file is handed to the OS share sheet ([FileSharer]) to leave the
+/// device.
 class FileStore {
   const FileStore({this.maxBackups = 10});
 

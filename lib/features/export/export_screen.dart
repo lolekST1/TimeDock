@@ -107,6 +107,11 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
     );
   }
 
+  /// Writes exports/backups to app-private storage, so the produced file is
+  /// handed to the OS share sheet to actually leave the device.
+  Future<void> _share(String path, String subject) =>
+      ref.read(fileSharerProvider).shareFile(path, subject: subject);
+
   Future<void> _exportPerSession() async {
     await _run(() async {
       final range = ref.read(reportRangeProvider);
@@ -117,7 +122,8 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       final file = await ref
           .read(fileStoreProvider)
           .writeExport('timedock_sesje', 'csv', csv);
-      return 'Zapisano ${rows.length} sesji:\n${file.path}';
+      await _share(file.path, 'TimeDock — sesje (CSV)');
+      return 'Wyeksportowano ${rows.length} sesji (CSV).';
     });
   }
 
@@ -131,7 +137,8 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       final file = await ref
           .read(fileStoreProvider)
           .writeExport('timedock_podsumowanie', 'csv', csv);
-      return 'Zapisano podsumowanie:\n${file.path}';
+      await _share(file.path, 'TimeDock — podsumowanie (CSV)');
+      return 'Wyeksportowano podsumowanie (CSV).';
     });
   }
 
@@ -157,8 +164,8 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       final file = await ref
           .read(fileStoreProvider)
           .writeExport('timedock_worklog', 'json', json);
-      return 'Zapisano ${result.rows.length} pozycji worklog:\n'
-          '${file.path}$skippedNote';
+      await _share(file.path, 'TimeDock — worklog (JSON)');
+      return 'Wyeksportowano ${result.rows.length} pozycji worklog.$skippedNote';
     });
   }
 
@@ -166,7 +173,8 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
     await _run(() async {
       final json = await ref.read(backupServiceProvider).exportToJson();
       final file = await ref.read(fileStoreProvider).writeBackup(json);
-      return 'Kopia zapasowa:\n${file.path}';
+      await _share(file.path, 'TimeDock — kopia zapasowa (JSON)');
+      return 'Utworzono kopię zapasową (JSON).';
     });
   }
 

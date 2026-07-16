@@ -21,10 +21,11 @@ tekstowe wpisywane ręcznie.
    puste zadania są pomijane w eksporcie.
 4. Na **ekranie eksportu** ustaw zakres (dzień / tydzień / miesiąc — ten sam
    selektor co w raportach) i wybierz **„Eksportuj worklog (JSON)"**.
-5. Powstaje plik `timedock_worklog_<timestamp>.json` w katalogu `exports/`
-   aplikacji (systemowy share sheet jest odroczony — patrz
-   [`export_backup.md`](export_backup.md)). Ten plik jest wejściem dla
-   aplikacji rozliczeniowej.
+5. Powstaje plik `timedock_worklog_<timestamp>.json` w prywatnym katalogu
+   aplikacji i **od razu otwiera się systemowy arkusz udostępniania** — stamtąd
+   wysyłasz plik do aplikacji rozliczeniowej, na Dysk, mailem itd. (katalog
+   aplikacji jest niedostępny z menedżera plików, więc udostępnianie to sposób,
+   w jaki plik opuszcza urządzenie).
 6. Komunikat po eksporcie podaje liczbę zapisanych pozycji oraz — jeśli
    dotyczy — **ile zakończonych sesji pominięto z powodu braku Jira ID**.
    To celowa ochrona przed cichym niedoszacowaniem rozliczenia: jeśli masz
