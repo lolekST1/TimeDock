@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/time_format.dart';
+import '../../core/ui/td_card.dart';
+import '../../core/ui/td_tokens.dart';
 import '../../domain/repositories/session_repository.dart';
 import '../../domain/services/day_timeline.dart';
 import '../app_state/context_label.dart';
@@ -91,15 +93,30 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.all(12),
-              child: Text('Zmierzono: ${formatDurationShort(tracked)}',
-                  style: Theme.of(context).textTheme.titleMedium),
+              padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+              child: Row(
+                children: [
+                  Icon(Icons.timelapse_rounded,
+                      size: 18, color: context.td.good),
+                  const SizedBox(width: 8),
+                  Text('Zmierzono',
+                      style: TextStyle(
+                          color: context.td.faint,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12.5,
+                          letterSpacing: 0.3)),
+                  const Spacer(),
+                  Text(formatDurationShort(tracked),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w800, fontSize: 16)),
+                ],
+              ),
             ),
             Expanded(
               child: entries.isEmpty
                   ? const Center(child: Text('Brak sesji tego dnia'))
                   : ListView.builder(
-                      padding: const EdgeInsets.only(bottom: 96),
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
                       itemCount: entries.length,
                       itemBuilder: (context, i) =>
                           _EntryTile(entry: entries[i], workspaceId: widget.workspaceId),
@@ -151,20 +168,26 @@ class _EntryTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final td = context.td;
     final timeRange =
         '${formatTimeOfDay(entry.startLocal)}–${formatTimeOfDay(entry.endLocal)}';
 
     if (entry is GapBlock) {
       return Padding(
-        padding: const EdgeInsets.fromLTRB(72, 4, 16, 4),
+        padding: const EdgeInsets.fromLTRB(6, 3, 6, 3),
         child: Row(
           children: [
-            Icon(Icons.more_vert,
-                size: 16, color: Theme.of(context).colorScheme.outline),
-            const SizedBox(width: 8),
+            SizedBox(
+              width: 34,
+              child: Center(
+                child: Container(width: 2, height: 18, color: td.border),
+              ),
+            ),
+            Icon(Icons.remove_circle_outline, size: 15, color: td.faint),
+            const SizedBox(width: 7),
             Text(
               'Nierejestrowane · ${formatDurationShort(entry.duration)}',
-              style: TextStyle(color: Theme.of(context).colorScheme.outline),
+              style: TextStyle(color: td.faint, fontSize: 12.5),
             ),
           ],
         ),
@@ -181,40 +204,100 @@ class _EntryTile extends ConsumerWidget {
           taskId: session.taskId,
         )))
         .valueOrNull;
+    final color = label == null ? td.faint : Color(label.color);
+    final edited = session.wasEdited || session.isManuallyAdded;
 
-    return ListTile(
-      leading: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(
-              color: label == null ? Colors.grey : Color(label.color),
-              shape: BoxShape.circle,
-            ),
-          ),
-        ],
-      ),
-      title: Text(label?.path ?? '…'),
-      subtitle: Text(
-        '$timeRange · ${formatDurationShort(block.duration)}'
-        '${session.isRunning ? ' · w toku' : ''}'
-        '${session.comment != null ? '\n${session.comment}' : ''}',
-      ),
-      isThreeLine: session.comment != null,
-      trailing: session.wasEdited || session.isManuallyAdded
-          ? Icon(Icons.edit_note,
-              size: 18, color: Theme.of(context).colorScheme.outline)
-          : null,
-      onTap: session.isRunning
-          ? null
-          : () => Navigator.of(context).push(MaterialPageRoute<void>(
-                builder: (_) => SessionEditorScreen(
-                  workspaceId: workspaceId,
-                  existing: session,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 9),
+      child: TdCard(
+        padding: EdgeInsets.zero,
+        clip: true,
+        onTap: session.isRunning
+            ? null
+            : () => Navigator.of(context).push(MaterialPageRoute<void>(
+                  builder: (_) => SessionEditorScreen(
+                    workspaceId: workspaceId,
+                    existing: session,
+                  ),
+                )),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(width: 4, color: color),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(13, 11, 13, 11),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Text(timeRange,
+                              style: TextStyle(
+                                  color: td.faint,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  fontFeatures: const [
+                                    FontFeature.tabularFigures()
+                                  ])),
+                          const Spacer(),
+                          if (session.isRunning) _Tag('w toku', td.good, td.goodBg),
+                          if (edited) ...[
+                            const SizedBox(width: 6),
+                            Icon(Icons.edit_note_rounded,
+                                size: 16, color: td.faint),
+                          ],
+                          const SizedBox(width: 8),
+                          Text(formatDurationShort(block.duration),
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w800, fontSize: 14)),
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      Text(label?.path ?? '…',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w700, fontSize: 14.5)),
+                      if (session.comment != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 3),
+                          child: Text(session.comment!,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style:
+                                  TextStyle(color: td.faint, fontSize: 12.5)),
+                        ),
+                    ],
+                  ),
                 ),
-              )),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Tag extends StatelessWidget {
+  const _Tag(this.label, this.fg, this.bg);
+
+  final String label;
+  final Color fg;
+  final Color bg;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration:
+          BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
+      child: Text(label,
+          style: TextStyle(
+              color: fg, fontSize: 10.5, fontWeight: FontWeight.w700)),
     );
   }
 }
