@@ -2,9 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../core/time_format.dart';
+import '../../core/ui/section_label.dart';
+import '../../core/ui/td_tokens.dart';
 import '../../data/providers.dart';
 import '../../domain/entities/project.dart';
+import '../../domain/entities/workspace.dart';
+import '../../domain/services/day_timeline.dart';
 import '../app_state/app_providers.dart';
+import '../export/export_screen.dart';
+import '../history/history_providers.dart';
 import '../history/history_screen.dart';
 import '../reports/reports_screen.dart';
 import '../settings/settings_screen.dart';
@@ -31,57 +38,30 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: DropdownButtonHideUnderline(
-          child: DropdownButton<String>(
-            value: selected?.id,
-            items: [
-              for (final w in workspaces)
-                DropdownMenuItem(value: w.id, child: Text(w.name)),
-            ],
-            onChanged: (id) {
-              if (id != null) {
-                ref.read(selectedWorkspaceProvider.notifier).select(id);
-              }
-            },
-          ),
+        titleSpacing: 12,
+        title: _WorkspacePill(
+          workspaces: workspaces,
+          selected: selected,
+          onSelect: (id) =>
+              ref.read(selectedWorkspaceProvider.notifier).select(id),
         ),
         actions: [
+          _TodayChip(workspaceId: selectedId),
           IconButton(
-            icon: const Icon(Icons.insights),
+            icon: const Icon(Icons.insights_outlined),
             tooltip: 'Statystyki',
             onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => const StatsScreen(),
-              ),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.bar_chart),
-            tooltip: 'Raporty',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => ReportsScreen(workspaceId: selectedId),
-              ),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.history),
-            tooltip: 'Historia',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => HistoryScreen(workspaceId: selectedId),
-              ),
+              MaterialPageRoute<void>(builder: (_) => const StatsScreen()),
             ),
           ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             tooltip: 'Ustawienia',
             onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => const SettingsScreen(),
-              ),
+              MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
             ),
           ),
+          const SizedBox(width: 4),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -89,8 +69,16 @@ class HomeScreen extends ConsumerWidget {
         icon: const Icon(Icons.add),
         label: const Text('Projekt'),
       ),
-      bottomNavigationBar:
-          active == null ? null : ActiveTimerBar(session: active),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (active != null) ActiveTimerBar(session: active),
+            _BottomNav(workspaceId: selectedId),
+          ],
+        ),
+      ),
       body: _HomeBody(workspaceId: selectedId),
     );
   }
@@ -115,6 +103,217 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
+/// The workspace switcher, styled as a pill that opens a menu.
+class _WorkspacePill extends StatelessWidget {
+  const _WorkspacePill({
+    required this.workspaces,
+    required this.selected,
+    required this.onSelect,
+  });
+
+  final List<Workspace> workspaces;
+  final Workspace? selected;
+  final ValueChanged<String> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final td = context.td;
+    final seed =
+        selected != null ? Color(selected!.colorSeed) : context.cs.primary;
+    return Material(
+      color: td.card,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: td.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: PopupMenuButton<String>(
+        onSelected: onSelect,
+        position: PopupMenuPosition.under,
+        itemBuilder: (context) => [
+          for (final w in workspaces)
+            PopupMenuItem<String>(
+              value: w.id,
+              child: Row(
+                children: [
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: Color(w.colorSeed),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(w.name),
+                ],
+              ),
+            ),
+        ],
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(11, 9, 10, 9),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: [seed, td.accent2]),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              const SizedBox(width: 9),
+              Text(
+                selected?.name ?? 'Workspace',
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+              ),
+              const SizedBox(width: 3),
+              Icon(Icons.expand_more_rounded, size: 18, color: td.faint),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "Dziś · Xh Ym" — today's tracked total for the selected workspace.
+class _TodayChip extends ConsumerWidget {
+  const _TodayChip({required this.workspaceId});
+
+  final String workspaceId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final now = DateTime.now();
+    final today = DateTime.utc(now.year, now.month, now.day);
+    final entries = ref
+            .watch(dayTimelineProvider(DayKey(workspaceId, today)))
+            .valueOrNull ??
+        const [];
+    final total = DayTimeline.trackedTotal(entries);
+    if (total == Duration.zero) return const SizedBox.shrink();
+    final td = context.td;
+
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+        decoration: BoxDecoration(
+          color: td.goodBg,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(color: td.good, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              'Dziś · ${formatDurationShort(total)}',
+              style: TextStyle(
+                color: td.goodInk,
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BottomNav extends StatelessWidget {
+  const _BottomNav({required this.workspaceId});
+
+  final String workspaceId;
+
+  @override
+  Widget build(BuildContext context) {
+    final td = context.td;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: td.card,
+        border: Border(top: BorderSide(color: td.border)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+        child: Row(
+          children: [
+            _NavItem(icon: Icons.home_rounded, label: 'Dom', active: true),
+            _NavItem(
+              icon: Icons.schedule_rounded,
+              label: 'Historia',
+              onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                  builder: (_) => HistoryScreen(workspaceId: workspaceId))),
+            ),
+            _NavItem(
+              icon: Icons.bar_chart_rounded,
+              label: 'Raporty',
+              onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                  builder: (_) => ReportsScreen(workspaceId: workspaceId))),
+            ),
+            _NavItem(
+              icon: Icons.ios_share_rounded,
+              label: 'Eksport',
+              onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                  builder: (_) => ExportScreen(workspaceId: workspaceId))),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NavItem extends StatelessWidget {
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    this.active = false,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool active;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final td = context.td;
+    final color = active ? context.cs.primary : td.faint;
+    return Expanded(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 7),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 22, color: color),
+              const SizedBox(height: 3),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _HomeBody extends ConsumerWidget {
   const _HomeBody({required this.workspaceId});
 
@@ -130,27 +329,21 @@ class _HomeBody extends ConsumerWidget {
 
     return CustomScrollView(
       slivers: [
+        const SliverPadding(padding: EdgeInsets.only(top: 6)),
         if (recents.isNotEmpty) ...[
-          const _Header('Ostatnio używane'),
-          SliverToBoxAdapter(
-            child: SizedBox(
-              height: 110,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  for (final ctx in recents)
-                    RecentContextTile(context: ctx),
-                ],
-              ),
+          _sliverHeader(SectionLabel('Ostatnio używane', count: recents.length)),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            sliver: SliverList.list(
+              children: [for (final ctx in recents) RecentContextTile(context: ctx)],
             ),
           ),
         ],
         if (favorites.isNotEmpty) ...[
-          const _Header('Ulubione'),
+          _sliverHeader(const SectionLabel('Ulubione')),
           _ProjectGrid(projects: favorites),
         ],
-        const _Header('Wszystkie projekty'),
+        _sliverHeader(const SectionLabel('Wszystkie projekty')),
         if (projects.isEmpty)
           const SliverToBoxAdapter(
             child: Padding(
@@ -166,21 +359,11 @@ class _HomeBody extends ConsumerWidget {
       ],
     );
   }
-}
 
-class _Header extends StatelessWidget {
-  const _Header(this.title);
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
-        child: Text(title, style: Theme.of(context).textTheme.titleMedium),
-      ),
-    );
-  }
+  Widget _sliverHeader(Widget child) => SliverPadding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+        sliver: SliverToBoxAdapter(child: child),
+      );
 }
 
 class _ProjectGrid extends StatelessWidget {
@@ -194,10 +377,10 @@ class _ProjectGrid extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       sliver: SliverGrid(
         gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: 200,
-          childAspectRatio: 1.4,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
+          maxCrossAxisExtent: 148,
+          childAspectRatio: 1.18,
+          crossAxisSpacing: 11,
+          mainAxisSpacing: 11,
         ),
         delegate: SliverChildBuilderDelegate(
           (context, index) => ProjectTile(project: projects[index]),
