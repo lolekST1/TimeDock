@@ -115,7 +115,7 @@ Logika, od której zależy poprawność danych, jest zaimplementowana i
 przetestowana; poniższe to integracje platformowe do wykonania na urządzeniu:
 
 - Natywny foreground service + notyfikacja z licznikiem — [`docs/foreground_service.md`](docs/foreground_service.md)
-- Widget ekranu głównego i kafelek Quick Settings
+- Widget ekranu głównego i kafelek Quick Settings — [`docs/home_widget.md`](docs/home_widget.md)
 - Przywracanie z dowolnego pliku, backup do Google Drive, XLSX — [`docs/export_backup.md`](docs/export_backup.md)
 - Wysyłka worklog do aplikacji rozliczeniowej (warstwa sieciowa/endpoint) — [`docs/worklog_export.md`](docs/worklog_export.md)
 
@@ -129,3 +129,7 @@ przetestowana; poniższe to integracje platformowe do wykonania na urządzeniu:
 | STOP z paska/notyfikacji | 1 tap | `ActiveTimerBar`, seam notyfikacji |
 | Poprawa końca ostatniej sesji | ≤ 3 tapy | edytor sesji, chipy ±15 min (widget-test) |
 | Ręczne dodanie sesji | ≤ 4 tapy + godziny | „Dodaj sesję" z domyślnym zakresem |
+
+## Licencja
+
+Kod udostępniony na licencji [MIT](LICENSE).
