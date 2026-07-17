@@ -59,8 +59,8 @@ class TdTokens extends ThemeExtension<TdTokens> {
   final List<BoxShadow> cardShadow;
 
   static const _lightShadow = [
-    BoxShadow(color: Color(0x0D142040), blurRadius: 2, offset: Offset(0, 1)),
-    BoxShadow(color: Color(0x0F142040), blurRadius: 26, offset: Offset(0, 10)),
+    BoxShadow(color: Color(0x14142040), blurRadius: 2, offset: Offset(0, 1)),
+    BoxShadow(color: Color(0x1A1B2A55), blurRadius: 22, offset: Offset(0, 10)),
   ];
   static const _darkShadow = [
     BoxShadow(color: Color(0x59000000), blurRadius: 2, offset: Offset(0, 1)),
@@ -68,12 +68,12 @@ class TdTokens extends ThemeExtension<TdTokens> {
   ];
 
   factory TdTokens.light() => const TdTokens(
-        canvas: Color(0xFFEDF0F7),
+        canvas: Color(0xFFE4E9F3),
         card: Color(0xFFFFFFFF),
-        cardAlt: Color(0xFFF4F7FC),
-        border: Color(0xFFE5EAF3),
-        track: Color(0xFFEAEEF6),
-        faint: Color(0xFF8790A1),
+        cardAlt: Color(0xFFEFF3FA),
+        border: Color(0xFFD4DCEA),
+        track: Color(0xFFE1E7F1),
+        faint: Color(0xFF77809A),
         good: Color(0xFF1FA971),
         goodBg: Color(0xFFE7F6EF),
         goodInk: Color(0xFF0E7C50),

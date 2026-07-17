@@ -12,6 +12,7 @@ class TdCard extends StatelessWidget {
     this.onTap,
     this.onLongPress,
     this.color,
+    this.borderColor,
     this.radius = 16,
     this.clip = false,
   });
@@ -21,6 +22,7 @@ class TdCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
   final Color? color;
+  final Color? borderColor;
   final double radius;
   final bool clip;
 
@@ -29,7 +31,7 @@ class TdCard extends StatelessWidget {
     final td = context.td;
     final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(radius),
-      side: BorderSide(color: td.border),
+      side: BorderSide(color: borderColor ?? td.border),
     );
     return DecoratedBox(
       decoration: BoxDecoration(

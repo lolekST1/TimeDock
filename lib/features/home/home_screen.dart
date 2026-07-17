@@ -193,7 +193,7 @@ class _TodayChip extends ConsumerWidget {
             .valueOrNull ??
         const [];
     final total = DayTimeline.trackedTotal(entries);
-    if (total == Duration.zero) return const SizedBox.shrink();
+    if (total.inMinutes < 1) return const SizedBox.shrink();
     final td = context.td;
 
     return Center(

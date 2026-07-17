@@ -24,11 +24,16 @@ class RecentContextTile extends ConsumerWidget {
     if (label == null) return const SizedBox.shrink();
 
     final td = buildContext.td;
+    final isDark = Theme.of(buildContext).brightness == Brightness.dark;
     final color = Color(label.color);
     final onColor =
         ThemeData.estimateBrightnessForColor(color) == Brightness.dark
             ? Colors.white
             : Colors.black;
+    // A wash of the project colour gives each row its own identity and lifts it
+    // off the canvas — no more flat white-on-grey.
+    final tint = Color.alphaBlend(
+        color.withValues(alpha: isDark ? 0.18 : 0.10), td.card);
     final detail = [
       if (label.subProjectName != null) label.subProjectName!,
       if (label.taskName != null) label.taskName!,
@@ -39,13 +44,14 @@ class RecentContextTile extends ConsumerWidget {
       child: TdCard(
         padding: EdgeInsets.zero,
         clip: true,
+        color: tint,
+        borderColor: color.withValues(alpha: isDark ? 0.42 : 0.30),
         onTap: () => _start(buildContext, ref),
         child: IntrinsicHeight(
           child: Row(
             children: [
-              Container(width: 4, color: color),
               Padding(
-                padding: const EdgeInsets.fromLTRB(11, 11, 11, 11),
+                padding: const EdgeInsets.fromLTRB(12, 11, 11, 11),
                 child: Container(
                   width: 34,
                   height: 34,
