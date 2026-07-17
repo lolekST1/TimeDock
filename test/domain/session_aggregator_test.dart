@@ -12,15 +12,15 @@ void main() {
     test('groups many sessions of one task into a single row', () {
       final tree = SessionAggregator.aggregate(
         sessions: [
-          session(id: '1', taskId: 'DAN-1234', start: at(8), end: at(9)),
-          session(id: '2', taskId: 'DAN-1234', start: at(10), end: at(11, 30)),
-          session(id: '3', taskId: 'DAN-1234', start: at(14), end: at(14, 45)),
+          session(id: '1', taskId: 'PROJ-1234', start: at(8), end: at(9)),
+          session(id: '2', taskId: 'PROJ-1234', start: at(10), end: at(11, 30)),
+          session(id: '3', taskId: 'PROJ-1234', start: at(14), end: at(14, 45)),
         ],
         firstDay: day,
         lastDay: day,
       );
       final task = tree.projects.single.tasks.single;
-      expect(task.taskId, 'DAN-1234');
+      expect(task.taskId, 'PROJ-1234');
       expect(task.total, const Duration(hours: 3, minutes: 15));
       expect(task.entries, hasLength(3));
       expect(tree.total, const Duration(hours: 3, minutes: 15));
@@ -31,25 +31,25 @@ void main() {
         sessions: [
           session(
               id: '1',
-              projectId: 'carlsberg',
-              subProjectId: 'tt',
-              taskId: 'CAR-123',
+              projectId: 'p1',
+              subProjectId: 'sp1',
+              taskId: 'TASK-123',
               start: at(8),
               end: at(10)),
           session(
               id: '2',
-              projectId: 'carlsberg',
-              subProjectId: 'tt',
-              taskId: 'CAR-555',
+              projectId: 'p1',
+              subProjectId: 'sp1',
+              taskId: 'TASK-555',
               start: at(10),
               end: at(13)),
           session(
               id: '3',
-              projectId: 'carlsberg',
-              subProjectId: 'lf',
+              projectId: 'p1',
+              subProjectId: 'sp2',
               start: at(13),
               end: at(14)),
-          session(id: '4', projectId: 'danone', start: at(14), end: at(15)),
+          session(id: '4', projectId: 'p2', start: at(14), end: at(15)),
         ],
         firstDay: day,
         lastDay: day,
@@ -58,18 +58,18 @@ void main() {
       expect(tree.total, const Duration(hours: 7));
       expect(tree.projects, hasLength(2));
       // Sorted by total, largest first.
-      final carlsberg = tree.projects.first;
-      expect(carlsberg.projectId, 'carlsberg');
-      expect(carlsberg.total, const Duration(hours: 6));
+      final project1 = tree.projects.first;
+      expect(project1.projectId, 'p1');
+      expect(project1.total, const Duration(hours: 6));
 
-      final tt = carlsberg.subProjects.first;
-      expect(tt.subProjectId, 'tt');
-      expect(tt.total, const Duration(hours: 5));
+      final sub1 = project1.subProjects.first;
+      expect(sub1.subProjectId, 'sp1');
+      expect(sub1.total, const Duration(hours: 5));
       // Tasks sorted by total desc.
-      expect(tt.tasks.map((t) => t.taskId), ['CAR-555', 'CAR-123']);
+      expect(sub1.tasks.map((t) => t.taskId), ['TASK-555', 'TASK-123']);
 
-      final lf = carlsberg.subProjects[1];
-      expect(lf.tasks.single.taskId, isNull); // "(bez zadania)"
+      final sub2 = project1.subProjects[1];
+      expect(sub2.tasks.single.taskId, isNull); // "(bez zadania)"
     });
 
     test('unassigned group sorts last regardless of size', () {

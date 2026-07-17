@@ -168,7 +168,7 @@ class _SessionEditorScreenState extends ConsumerState<SessionEditorScreen> {
             inputFormatters: const [UpperCaseTextFormatter()],
             decoration: InputDecoration(
               labelText: 'Jira ID',
-              hintText: 'np. DAN-1234',
+              hintText: 'np. PROJ-123',
               border: const OutlineInputBorder(),
               prefixIcon: const Icon(Icons.tag),
               errorText: JiraIdValidator.validate(_jiraController.text),
@@ -234,7 +234,7 @@ class _SessionEditorScreenState extends ConsumerState<SessionEditorScreen> {
       return;
     }
     if (!JiraIdValidator.isValid(_jiraController.text)) {
-      _snack('Nieprawidłowy format Jira ID (np. ABS-123).');
+      _snack('Nieprawidłowy format Jira ID (np. PROJ-123).');
       return;
     }
 

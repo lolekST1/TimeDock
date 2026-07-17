@@ -20,7 +20,7 @@ class ContextLabel {
   final String? taskJiraId;
   final int color;
 
-  /// e.g. "Carlsberg › TT › CAR-987".
+  /// e.g. "Projekt2 › Podprojekt1 › PROJ-987".
   String get path => [
         projectName,
         if (subProjectName != null) subProjectName,

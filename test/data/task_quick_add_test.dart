@@ -43,10 +43,10 @@ void main() {
   });
 
   test('uses the Jira id as the name when only Jira is given', () async {
-    final id = await quickAdd.findOrCreate(projectId: 'p1', jiraId: 'DAN-1234');
+    final id = await quickAdd.findOrCreate(projectId: 'p1', jiraId: 'PROJ-1234');
     final created = await tasks.getById(id!);
-    expect(created!.name, 'DAN-1234');
-    expect(created.jiraId, 'DAN-1234');
+    expect(created!.name, 'PROJ-1234');
+    expect(created.jiraId, 'PROJ-1234');
   });
 
   test('reuses an existing task with the same name (case-insensitive)',

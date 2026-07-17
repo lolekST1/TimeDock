@@ -20,7 +20,7 @@ class WorklogRow {
   /// Session UUID — the idempotency key on the consuming side.
   final String sessionId;
 
-  /// The task's Jira id (e.g. `ABS-123`); guaranteed non-empty by the builder.
+  /// The task's Jira id (e.g. `PROJ-123`); guaranteed non-empty by the builder.
   final String issueKey;
 
   /// Session start, in UTC.

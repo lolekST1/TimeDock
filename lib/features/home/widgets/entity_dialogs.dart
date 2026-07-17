@@ -45,7 +45,7 @@ class TaskInput {
 }
 
 /// Task prompt: name plus optional Jira id. The Jira id, when non-empty, is
-/// validated against the format (`ABS-123`) via the pure domain validator.
+/// validated against the format (`PROJ-123`) via the pure domain validator.
 Future<TaskInput?> promptForTask(
   BuildContext context, {
   String? initialName,

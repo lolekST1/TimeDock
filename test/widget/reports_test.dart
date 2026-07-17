@@ -32,17 +32,17 @@ void main() {
     final base = DateTime(now.year, now.month, now.day, 8);
 
     await DriftWorkspaceRepository(db).upsert(Workspace(
-        id: 'w1', name: 'Absysco', colorSeed: 0xFF1565C0, createdAt: base, updatedAt: base));
+        id: 'w1', name: 'Praca', colorSeed: 0xFF1565C0, createdAt: base, updatedAt: base));
     await DriftProjectRepository(db).upsert(Project(
-        id: 'p1', workspaceId: 'w1', name: 'Danone', color: 0xFF1E88E5, createdAt: base, updatedAt: base));
+        id: 'p1', workspaceId: 'w1', name: 'Projekt1', color: 0xFF1E88E5, createdAt: base, updatedAt: base));
     await DriftTaskRepository(db).upsert(Task(
-        id: 'DAN-1', projectId: 'p1', name: 'DAN-1234', createdAt: base, updatedAt: base));
+        id: 't1', projectId: 'p1', name: 'PROJ-1234', createdAt: base, updatedAt: base));
 
     TimeSession s(String id, DateTime start, Duration d) => TimeSession(
           id: id,
           workspaceId: 'w1',
           projectId: 'p1',
-          taskId: 'DAN-1',
+          taskId: 't1',
           startUtc: start.toUtc(),
           endUtc: start.add(d).toUtc(),
           startOffsetMinutes: start.timeZoneOffset.inMinutes,
@@ -74,6 +74,6 @@ void main() {
 
     // 2h + 1h15m = 3h 15m total, and a single grouped task row.
     expect(find.text('Razem: 3h 15m'), findsOneWidget);
-    expect(find.text('Danone'), findsOneWidget);
+    expect(find.text('Projekt1'), findsOneWidget);
   });
 }

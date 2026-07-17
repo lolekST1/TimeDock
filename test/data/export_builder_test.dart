@@ -42,10 +42,10 @@ void main() {
     );
 
     final now = day.toUtc();
-    await wsRepo.upsert(Workspace(id: 'w1', name: 'Absysco', colorSeed: 0, createdAt: now, updatedAt: now));
-    await pRepo.upsert(Project(id: 'p1', workspaceId: 'w1', name: 'Carlsberg', color: 0, createdAt: now, updatedAt: now));
-    await spRepo.upsert(SubProject(id: 'sp1', projectId: 'p1', name: 'TT', createdAt: now, updatedAt: now));
-    await tRepo.upsert(Task(id: 't1', projectId: 'p1', subProjectId: 'sp1', name: 'CAR-123', jiraId: 'CAR-123', createdAt: now, updatedAt: now));
+    await wsRepo.upsert(Workspace(id: 'w1', name: 'Praca', colorSeed: 0, createdAt: now, updatedAt: now));
+    await pRepo.upsert(Project(id: 'p1', workspaceId: 'w1', name: 'Projekt2', color: 0, createdAt: now, updatedAt: now));
+    await spRepo.upsert(SubProject(id: 'sp1', projectId: 'p1', name: 'Podprojekt1', createdAt: now, updatedAt: now));
+    await tRepo.upsert(Task(id: 't1', projectId: 'p1', subProjectId: 'sp1', name: 'TASK-123', jiraId: 'TASK-123', createdAt: now, updatedAt: now));
 
     TimeSession sessionOf(String id, DateTime start, Duration d,
             {String? taskId, String? subId}) =>
@@ -69,17 +69,17 @@ void main() {
   test('per-session rows resolve names and Jira id', () async {
     final rows = await builder.perSessionRows('w1', range);
     expect(rows, hasLength(2));
-    expect(rows.first.workspace, 'Absysco');
-    expect(rows.first.project, 'Carlsberg');
-    expect(rows.first.subProject, 'TT');
-    expect(rows.first.task, 'CAR-123');
-    expect(rows.first.jiraId, 'CAR-123');
+    expect(rows.first.workspace, 'Praca');
+    expect(rows.first.project, 'Projekt2');
+    expect(rows.first.subProject, 'Podprojekt1');
+    expect(rows.first.task, 'TASK-123');
+    expect(rows.first.jiraId, 'TASK-123');
     expect(rows.first.duration, const Duration(hours: 2));
   });
 
   test('aggregate rows sum per task and label the untasked group', () async {
     final rows = await builder.aggregateRows('w1', range);
-    final tasked = rows.firstWhere((r) => r.task == 'CAR-123');
+    final tasked = rows.firstWhere((r) => r.task == 'TASK-123');
     expect(tasked.total, const Duration(hours: 2));
     expect(tasked.sessionCount, 1);
     final untasked = rows.firstWhere((r) => r.task == '(bez zadania)');

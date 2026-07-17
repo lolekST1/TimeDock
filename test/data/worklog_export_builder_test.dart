@@ -32,7 +32,7 @@ void main() {
     final now = day.toUtc();
     await wsRepo.upsert(Workspace(
       id: 'w1',
-      name: 'Absysco',
+      name: 'Praca',
       colorSeed: 0,
       exportsToTimesheet: exports,
       createdAt: now,
@@ -57,11 +57,11 @@ void main() {
     // The workspace must exist before its project (FK); tests re-stamp its flag.
     await setExportFlag(exports: false);
     await pRepo.upsert(Project(
-        id: 'p1', workspaceId: 'w1', name: 'Danone', color: 0,
+        id: 'p1', workspaceId: 'w1', name: 'Projekt1', color: 0,
         createdAt: now, updatedAt: now));
     // t1: has a Jira id. t2: no Jira id (should be skipped).
     await tRepo.upsert(Task(
-        id: 't1', projectId: 'p1', name: 'Feature', jiraId: 'ABS-123',
+        id: 't1', projectId: 'p1', name: 'Feature', jiraId: 'PROJ-123',
         createdAt: now, updatedAt: now));
     await tRepo.upsert(Task(
         id: 't2', projectId: 'p1', name: 'Bez Jiry',
@@ -108,10 +108,10 @@ void main() {
     expect(rows, hasLength(1));
     final r = rows.single;
     expect(r.sessionId, 's1');
-    expect(r.issueKey, 'ABS-123');
+    expect(r.issueKey, 'PROJ-123');
     expect(r.durationSeconds, const Duration(hours: 2).inSeconds);
     expect(r.description, 'Analiza');
-    expect(r.workspace, 'Absysco');
+    expect(r.workspace, 'Praca');
   });
 
   test('counts finished in-range sessions skipped for a missing Jira id',
@@ -133,10 +133,10 @@ void main() {
   test('stamps the configured author onto every row', () async {
     await setExportFlag(exports: true);
     final rows = (await builder.worklogExport('w1', range,
-            author: '  jan@absysco.com  '))
+            author: '  jan@example.com  '))
         .rows;
     expect(rows, hasLength(1));
-    expect(rows.single.author, 'jan@absysco.com'); // trimmed
+    expect(rows.single.author, 'jan@example.com'); // trimmed
   });
 
   test('a blank author is normalised to null', () async {
@@ -157,21 +157,21 @@ void main() {
     test('true only for a finished, jira-tagged session in an opted-in ws', () {
       expect(
           WorklogExportBuilder.shouldExport(finished,
-              workspaceExports: true, jiraId: 'ABS-1'),
+              workspaceExports: true, jiraId: 'PROJ-1'),
           isTrue);
     });
 
     test('false when the workspace has not opted in', () {
       expect(
           WorklogExportBuilder.shouldExport(finished,
-              workspaceExports: false, jiraId: 'ABS-1'),
+              workspaceExports: false, jiraId: 'PROJ-1'),
           isFalse);
     });
 
     test('false for a running session', () {
       expect(
           WorklogExportBuilder.shouldExport(running,
-              workspaceExports: true, jiraId: 'ABS-1'),
+              workspaceExports: true, jiraId: 'PROJ-1'),
           isFalse);
     });
 

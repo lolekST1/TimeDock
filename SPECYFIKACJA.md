@@ -101,7 +101,8 @@ podprojekt i zadanie tylko jeśli istnieją.
 Pola: `id`, `name`, `colorSeed`, `sortOrder`, `isArchived`.
 
 - Workspace'y są **danymi startowymi (seed), nie kodem [v2]**. Użytkownik może
-  dodawać, edytować nazwę/kolor i archiwizować workspace'y. Seed: `Absysco`, `Prywatne`.
+  dodawać, edytować nazwę/kolor i archiwizować workspace'y. Seed: `Praca`, `Prywatne`
+  (neutralne nazwy zastępcze — aplikacja startuje „czysta", bez nazw klientów).
 - Każdy workspace ma własne projekty, statystyki, raporty i ustawienia. Dane się nie mieszają.
 - Aplikacja zapamiętuje ostatnio wybrany workspace i otwiera się na nim.
 
@@ -126,14 +127,14 @@ Pola: `id`, `projectId`, `name`, `isArchived`, `sortOrder`.
 
 Pola: `id`, `projectId`, `subProjectId?`, `name`, `jiraId?`, `note?`, `isArchived`.
 
-- Zadanie jest opcjonalne. Przykłady: `DAN-1234`, `BUG-887`, `Landing Page`.
+- Zadanie jest opcjonalne. Przykłady: `PROJ-1234`, `BUG-887`, `Landing Page`.
 - **Numer Jira i opis zadania żyją wyłącznie na Task [v2]** — sesja ich nie
   duplikuje. Jedno zadanie ma wiele sesji.
 - **Walidacja `jiraId` [krok eksportu]:** pole pozostaje opcjonalne, ale jeśli
   jest wypełnione, musi mieć format klucza Jira (`^[A-Z][A-Z0-9]+-\d+$`, np.
-  `ABS-123`, `MM-2435`, `EMS2-1203`). Walidator to czysta funkcja w domenie
+  `PROJ-123`, `AB-2435`, `AB1-1203`). Walidator to czysta funkcja w domenie
   (`JiraIdValidator`); UI tylko ją wywołuje. Klucze są przechowywane wielkimi
-  literami — wpis małymi (`abs-123`) jest **automatycznie korygowany na wielkie**
+  literami — wpis małymi (`proj-123`) jest **automatycznie korygowany na wielkie**
   (na żywo w polu oraz przy zapisie), a nie odrzucany. Pusty `jiraId` jest nadal
   dozwolony.
 
@@ -195,7 +196,7 @@ Bez pytań, bez dialogów potwierdzających.
 ### 5.3. Zapomniany timer [v2 – w całości nowe]
 
 - Po przekroczeniu konfigurowalnego progu (domyślnie **4 h**) notyfikacja pyta:
-  *„Nadal pracujesz nad [Danone]?"* z akcjami: „Tak" / „Zatrzymaj teraz" /
+  *„Nadal pracujesz nad [Projekt1]?"* z akcjami: „Tak" / „Zatrzymaj teraz" /
   „Zatrzymaj i przytnij…".
 - Przy zatrzymywaniu sesji dłuższej niż próg ekran STOP proponuje **przycięcie
   końca** (wybór faktycznej godziny zakończenia) zamiast zapisu 14-godzinnej sesji.
@@ -231,7 +232,7 @@ Wszystkie projekty
 ```
 
 - **Ostatnio używane**: pełne konteksty, nie same projekty — np.
-  `Danone → DAN-1234`, `Carlsberg → TT → CAR-987`. Jeden tap = start timera
+  `Projekt1 → PROJ-1234`, `Projekt2 → Podprojekt1 → PROJ-987`. Jeden tap = start timera
   dokładnie w tym kontekście. Limit: 5 pozycji. Lista deduplikowana względem kontekstu.
 - **Ulubione [v2 – doprecyzowane]**: projekty oznaczone ręcznie gwiazdką
   (long-press → „Ulubiony" lub w edycji projektu). Sekcja znika, gdy pusta.
@@ -297,9 +298,9 @@ start < koniec; sesja edytowana dostaje `wasEdited = true`.
 - Sesje przechodzące przez północ renderowane zgodnie z §4.7.
 
 ```
-08:00–09:10  Danone
-09:15–10:30  Carlsberg → TT → CAR-987
-11:00–11:45  PMI
+08:00–09:10  Projekt1
+09:15–10:30  Projekt2 → Podprojekt1 → PROJ-987
+11:00–11:45  Projekt3
 ```
 
 ---
@@ -317,16 +318,16 @@ Workspace → Project → SubProject → Task → Sessions
 Przykład:
 
 ```
-Carlsberg                42 h
-  TT                     18 h
-    CAR-123               8 h
-    CAR-555              10 h
-  LF                     12 h
-  CC                      7 h
+Projekt2                 42 h
+  Podprojekt1            18 h
+    PROJ-123              8 h
+    PROJ-555             10 h
+  Podprojekt2           12 h
+  Podprojekt3            7 h
 ```
 
 - **Grupowanie**: wiele sesji jednego zadania sumuje się do jednej pozycji
-  (`DAN-1234 → 3h 15m`); rozwinięcie pokazuje poszczególne sesje.
+  (`PROJ-1234 → 3h 15m`); rozwinięcie pokazuje poszczególne sesje.
 - Sesje bez podprojektu/zadania grupują się w wiersz „(bez zadania)" na danym poziomie.
 - Raporty liczone w czystej warstwie domenowej (testowalne bez UI), zgodnie
   z regułami czasowymi z §4.7.
@@ -404,12 +405,15 @@ to kryteria testów akceptacyjnych, nie wskazówki.
 
 Seed wykonywany przy pierwszym uruchomieniu; potem wszystko edytowalne przez UI.
 
-**Workspace'y:** `Absysco`, `Prywatne`.
+Seed świadomie używa **neutralnych nazw zastępczych** — aplikacja pobiera się
+„czysta", bez żadnych nazw klientów/projektów wbudowanych w kod. Użytkownik
+zmienia je lub usuwa i dodaje własne z poziomu UI przy pierwszym uruchomieniu.
 
-**Projekty w Absysco:** Danone, Carlsberg, PMI, MSS, KP, XBS, MerService,
-Cursor, ProPeople.
+**Workspace'y:** `Praca`, `Prywatne`.
 
-**Podprojekty:** Carlsberg → TT, LF, CC, Dyskonty. Danone → (brak).
+**Projekty w „Praca":** Projekt1, Projekt2, Projekt3.
+
+**Podprojekty:** Projekt2 → Podprojekt1, Podprojekt2. Pozostałe projekty → (brak).
 
 ---
 
@@ -427,8 +431,13 @@ Cursor, ProPeople.
 
 ## 17. Świadomie poza zakresem
 
-- Stawki godzinowe, fakturowanie, flagi „billable" — eksport z zaokrągleniem
-  pokrywa obecną potrzebę; model danych nie blokuje dodania tego później.
+- Stawki godzinowe, kwoty i fakturowanie — poza zakresem; eksport
+  z zaokrągleniem pokrywa obecną potrzebę, a model danych nie blokuje dodania
+  tego później. **Kwalifikacja czasu do rozliczenia jest natomiast już obecna**
+  na poziomie przestrzeni: flaga „Eksportuj do rozliczenia czasu" plus wymóg
+  niepustego Jira ID decydują, które sesje trafiają do worklog (§13.1). Poza
+  zakresem pozostaje wyłącznie per-sesyjny/per-zadaniowy flag „billable"
+  i naliczanie stawek.
 - Integracja z API Jira (pobieranie zadań) — Jira ID pozostaje polem tekstowym.
 - Wykrywanie bezczynności (idle detection) — nierealne na mobile bez ciężkich
   uprawnień; zamiast tego przypomnienie o zapomnianym timerze (§5.3).

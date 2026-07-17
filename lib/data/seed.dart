@@ -25,19 +25,18 @@ class DatabaseSeeder {
   final Uuid _uuid;
   final DateTime Function() _nowUtc;
 
-  static const _absyscoProjects = [
-    ('Danone', 0xFF1E88E5),
-    ('Carlsberg', 0xFF2E7D32),
-    ('PMI', 0xFF6D4C41),
-    ('MSS', 0xFF8E24AA),
-    ('KP', 0xFFF4511E),
-    ('XBS', 0xFF00897B),
-    ('MerService', 0xFF3949AB),
-    ('Cursor', 0xFF546E7A),
-    ('ProPeople', 0xFFD81B60),
+  // Neutral placeholder projects — the app ships "clean", with no real client
+  // or project names baked in. The user renames these (or deletes them and
+  // adds their own) from the UI on first run.
+  static const _workProjects = [
+    ('Projekt1', 0xFF1E88E5),
+    ('Projekt2', 0xFF2E7D32),
+    ('Projekt3', 0xFF6D4C41),
   ];
 
-  static const _carlsbergSubProjects = ['TT', 'LF', 'CC', 'Dyskonty'];
+  /// Which seeded project carries example sub-projects, and their names.
+  static const _projectWithSubProjects = 'Projekt2';
+  static const _subProjectNames = ['Podprojekt1', 'Podprojekt2'];
 
   /// Seeds initial data if (and only if) the database is empty.
   /// Idempotent: safe to call on every app start.
@@ -45,9 +44,9 @@ class DatabaseSeeder {
     if (await workspaces.hasAny()) return;
     final now = _nowUtc();
 
-    final absysco = Workspace(
+    final work = Workspace(
       id: _uuid.v4(),
-      name: 'Absysco',
+      name: 'Praca',
       colorSeed: 0xFF1565C0,
       sortOrder: 0,
       createdAt: now,
@@ -61,14 +60,14 @@ class DatabaseSeeder {
       createdAt: now,
       updatedAt: now,
     );
-    await workspaces.upsert(absysco);
+    await workspaces.upsert(work);
     await workspaces.upsert(private);
 
-    for (var i = 0; i < _absyscoProjects.length; i++) {
-      final (name, color) = _absyscoProjects[i];
+    for (var i = 0; i < _workProjects.length; i++) {
+      final (name, color) = _workProjects[i];
       final project = Project(
         id: _uuid.v4(),
-        workspaceId: absysco.id,
+        workspaceId: work.id,
         name: name,
         color: color,
         sortOrder: i,
@@ -77,12 +76,12 @@ class DatabaseSeeder {
       );
       await projects.upsert(project);
 
-      if (name == 'Carlsberg') {
-        for (var j = 0; j < _carlsbergSubProjects.length; j++) {
+      if (name == _projectWithSubProjects) {
+        for (var j = 0; j < _subProjectNames.length; j++) {
           await subProjects.upsert(SubProject(
             id: _uuid.v4(),
             projectId: project.id,
-            name: _carlsbergSubProjects[j],
+            name: _subProjectNames[j],
             sortOrder: j,
             createdAt: now,
             updatedAt: now,
