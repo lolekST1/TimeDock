@@ -31,7 +31,7 @@ void main() {
     raw.execute(
       'INSERT INTO workspaces '
       '(id, name, color_seed, sort_order, is_archived, created_at_millis, updated_at_millis) '
-      "VALUES ('w1', 'Absysco', 1, 0, 0, 0, 0);",
+      "VALUES ('w1', 'Praca', 1, 0, 0, 0, 0);",
     );
     raw.execute('PRAGMA user_version = 1;');
     raw.dispose();
@@ -43,7 +43,7 @@ void main() {
 
     final migrated = await workspaces.getById('w1');
     expect(migrated, isNotNull);
-    expect(migrated!.name, 'Absysco'); // existing data survived
+    expect(migrated!.name, 'Praca'); // existing data survived
     expect(migrated.weeklyGoalMinutes, isNull); // new column present, empty
 
     // The new column is writable after the migration.
@@ -78,7 +78,7 @@ void main() {
       'INSERT INTO workspaces '
       '(id, name, color_seed, sort_order, is_archived, weekly_goal_minutes, '
       'created_at_millis, updated_at_millis) '
-      "VALUES ('w1', 'Absysco', 1, 0, 0, 600, 0, 0);",
+      "VALUES ('w1', 'Praca', 1, 0, 0, 600, 0, 0);",
     );
     raw.execute('PRAGMA user_version = 2;');
     raw.dispose();
@@ -90,7 +90,7 @@ void main() {
 
     final migrated = await workspaces.getById('w1');
     expect(migrated, isNotNull);
-    expect(migrated!.name, 'Absysco'); // existing data survived
+    expect(migrated!.name, 'Praca'); // existing data survived
     expect(migrated.weeklyGoalMinutes, 600); // v2 data survived
     expect(migrated.exportsToTimesheet, isFalse); // new column defaults to false
 

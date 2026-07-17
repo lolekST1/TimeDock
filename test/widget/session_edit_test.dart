@@ -20,9 +20,9 @@ void main() {
 
     final day = DateTime.utc(2026, 7, 10);
     await DriftWorkspaceRepository(db).upsert(Workspace(
-        id: 'w1', name: 'Absysco', colorSeed: 0xFF1565C0, createdAt: day, updatedAt: day));
+        id: 'w1', name: 'Praca', colorSeed: 0xFF1565C0, createdAt: day, updatedAt: day));
     await DriftProjectRepository(db).upsert(Project(
-        id: 'p1', workspaceId: 'w1', name: 'Danone', color: 0xFF1E88E5, createdAt: day, updatedAt: day));
+        id: 'p1', workspaceId: 'w1', name: 'Projekt1', color: 0xFF1E88E5, createdAt: day, updatedAt: day));
 
     // A finished session 08:00–09:00 local.
     final start = DateTime(2026, 7, 10, 8);

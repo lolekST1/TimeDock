@@ -22,7 +22,7 @@ void main() {
     addTearDown(db.close);
     final now = DateTime.utc(2026, 7, 10);
     await DriftWorkspaceRepository(db).upsert(Workspace(
-        id: 'w1', name: 'Absysco', colorSeed: 0xFF1565C0, createdAt: now, updatedAt: now));
+        id: 'w1', name: 'Praca', colorSeed: 0xFF1565C0, createdAt: now, updatedAt: now));
 
     final container = ProviderContainer(overrides: [
       databaseProvider.overrideWithValue(db),

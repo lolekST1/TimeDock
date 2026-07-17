@@ -67,10 +67,10 @@ void main() {
         start: '08:00',
         end: '09:10',
         duration: Duration(hours: 1, minutes: 10),
-        workspace: 'Absysco',
-        project: 'Danone',
-        task: 'DAN-1234',
-        jiraId: 'DAN-1234',
+        workspace: 'Praca',
+        project: 'Projekt1',
+        task: 'PROJ-1234',
+        jiraId: 'PROJ-1234',
       ),
     ];
 
@@ -79,7 +79,7 @@ void main() {
       final lines = csv.trim().split('\n');
       expect(lines, hasLength(2));
       expect(lines.first, startsWith('Data,Start,Koniec,Czas'));
-      expect(lines[1], contains('Danone'));
+      expect(lines[1], contains('Projekt1'));
       expect(lines[1], contains('1:10'));
     });
 
@@ -90,8 +90,8 @@ void main() {
           start: '08:00',
           end: '09:00',
           duration: Duration(hours: 1),
-          workspace: 'Absysco',
-          project: 'Danone',
+          workspace: 'Praca',
+          project: 'Projekt1',
           comment: 'spotkanie, ważne "pilne"',
         ),
       ];
@@ -111,16 +111,16 @@ void main() {
     test('summary lines with totals and counts', () {
       final csv = CsvExporter.aggregated([
         const AggregateRow(
-          project: 'Carlsberg',
-          subProject: 'TT',
-          task: 'CAR-123',
+          project: 'Projekt2',
+          subProject: 'Podprojekt1',
+          task: 'TASK-123',
           total: Duration(hours: 8),
           sessionCount: 3,
         ),
       ], const ExportConfig());
       final lines = csv.trim().split('\n');
       expect(lines.first, startsWith('Projekt,Podprojekt,Zadanie'));
-      expect(lines[1], contains('Carlsberg'));
+      expect(lines[1], contains('Projekt2'));
       expect(lines[1], contains('8:00'));
       expect(lines[1], endsWith('3'));
     });

@@ -30,9 +30,9 @@ void main() {
     final base = DateTime(now.year, now.month, now.day, 8);
 
     await DriftWorkspaceRepository(db).upsert(Workspace(
-        id: 'w1', name: 'Absysco', colorSeed: 0xFF1565C0, createdAt: base, updatedAt: base));
+        id: 'w1', name: 'Praca', colorSeed: 0xFF1565C0, createdAt: base, updatedAt: base));
     await DriftProjectRepository(db).upsert(Project(
-        id: 'p1', workspaceId: 'w1', name: 'Danone', color: 0xFF1E88E5, createdAt: base, updatedAt: base));
+        id: 'p1', workspaceId: 'w1', name: 'Projekt1', color: 0xFF1E88E5, createdAt: base, updatedAt: base));
 
     TimeSession s(String id, DateTime start, Duration d) => TimeSession(
           id: id,

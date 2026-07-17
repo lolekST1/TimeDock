@@ -201,7 +201,7 @@ class SettingsScreen extends ConsumerWidget {
           autofocus: true,
           decoration: const InputDecoration(
             labelText: 'E-mail lub identyfikator (opcjonalnie)',
-            hintText: 'np. jan.kowalski@absysco.com',
+            hintText: 'np. jan.kowalski@example.com',
           ),
           onSubmitted: (v) => Navigator.of(context).pop(v.trim()),
         ),

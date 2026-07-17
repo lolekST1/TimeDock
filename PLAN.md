@@ -61,7 +61,7 @@ lib/
 - Encje domenowe (czysty Dart, bez zależności od Drift)
 - Repozytoria: interfejsy w domenie, implementacje na DAO Drift,
   strumienie (watch) pod reaktywne UI Riverpod
-- Seed pierwszego uruchomienia (§15): Absysco/Prywatne + projekty + podprojekty
+- Seed pierwszego uruchomienia (§15): Praca/Prywatne + neutralne projekty + podprojekty
 - Logika czysta w `domain/services`:
   - `TimeRules` — podział sesji na granicy doby lokalnej, obsługa DST
   - `SessionValidator` — kolizje przy edycji, start < koniec, propozycja przycięcia sąsiada

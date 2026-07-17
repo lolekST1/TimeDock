@@ -103,16 +103,16 @@ void main() {
 
     await container
         .read(settingsProvider.notifier)
-        .setWorklogAuthor('  jan@absysco.com  ');
-    expect(container.read(settingsProvider).worklogAuthor, 'jan@absysco.com');
+        .setWorklogAuthor('  jan@example.com  ');
+    expect(container.read(settingsProvider).worklogAuthor, 'jan@example.com');
     expect(container.read(sharedPreferencesProvider).getString('worklog_author'),
-        'jan@absysco.com');
+        'jan@example.com');
   });
 
   test('reads a stored worklog author', () async {
-    final container = await _container({'worklog_author': 'ala@absysco.com'});
+    final container = await _container({'worklog_author': 'ala@example.com'});
     addTearDown(container.dispose);
-    expect(container.read(settingsProvider).worklogAuthor, 'ala@absysco.com');
+    expect(container.read(settingsProvider).worklogAuthor, 'ala@example.com');
   });
 
   test('maps to domain forgotten-timer and export config', () async {

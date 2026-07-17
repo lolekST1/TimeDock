@@ -23,11 +23,11 @@ void main() {
 
     final now = DateTime.utc(2026, 7, 10, 8);
     await DriftWorkspaceRepository(db).upsert(Workspace(
-        id: 'w1', name: 'Absysco', colorSeed: 0xFF1565C0, createdAt: now, updatedAt: now));
+        id: 'w1', name: 'Praca', colorSeed: 0xFF1565C0, createdAt: now, updatedAt: now));
     await DriftProjectRepository(db).upsert(Project(
         id: 'p1',
         workspaceId: 'w1',
-        name: 'Danone',
+        name: 'Projekt1',
         color: 0xFF1E88E5,
         createdAt: now,
         updatedAt: now));
@@ -48,7 +48,7 @@ void main() {
     expect(await container.read(sessionRepositoryProvider).getActive(), isNull);
 
     // One tap on the project tile.
-    await tester.tap(find.text('Danone'));
+    await tester.tap(find.text('Projekt1'));
     await tester.pump();
 
     final active = await container.read(sessionRepositoryProvider).getActive();

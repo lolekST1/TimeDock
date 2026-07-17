@@ -17,7 +17,7 @@ tekstowe wpisywane ręcznie.
    każdego wiersza eksportu (pole `author`), żeby aplikacja rozliczeniowa
    wiedziała, od kogo pochodzi czas. Puste = pole `author` będzie `null`.
 3. Uzupełnij `jiraId` na zadaniach, których czas ma trafić do rozliczenia
-   (np. `ABS-123`, `MM-2435`, `EMS2-1203`). Pole jest walidowane formatem
+   (np. `PROJ-123`, `AB-2435`, `AB1-1203`). Pole jest walidowane formatem
    `^[A-Z][A-Z0-9]+-\d+$`; małe litery są automatycznie zamieniane na wielkie.
    Puste zadania są pomijane w eksporcie.
 4. Na **ekranie eksportu** ustaw zakres (dzień / tydzień / miesiąc — ten sam
@@ -55,13 +55,13 @@ Lista obiektów JSON, jeden na sesję:
 [
   {
     "sessionId": "1f0c9e2a-…",
-    "issueKey": "ABS-123",
+    "issueKey": "PROJ-123",
     "startUtc": "2026-07-16T08:00:00.000Z",
     "endUtc": "2026-07-16T09:30:00.000Z",
     "durationSeconds": 5400,
     "description": "Analiza wymagań",
-    "workspace": "Absysco",
-    "author": "jan.kowalski@absysco.com"
+    "workspace": "Praca",
+    "author": "jan.kowalski@example.com"
   }
 ]
 ```
@@ -69,7 +69,7 @@ Lista obiektów JSON, jeden na sesję:
 | Pole | Typ | Znaczenie |
 |---|---|---|
 | `sessionId` | string (UUID) | Identyfikator sesji — **klucz idempotencji** po stronie konsumenta. |
-| `issueKey` | string | `jiraId` zadania (np. `ABS-123`); zawsze niepusty. |
+| `issueKey` | string | `jiraId` zadania (np. `PROJ-123`); zawsze niepusty. |
 | `startUtc` | string (ISO-8601, UTC, `Z`) | Początek sesji w UTC. |
 | `endUtc` | string (ISO-8601, UTC, `Z`) | Koniec sesji w UTC. |
 | `durationSeconds` | int | Czas trwania w sekundach (liczony z UTC, odporny na DST). |

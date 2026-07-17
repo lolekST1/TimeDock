@@ -2,10 +2,10 @@
 /// [Task].
 ///
 /// The field stays optional (§17 keeps Jira integration out of scope), so an
-/// empty value is always allowed. When present it must look like `ABS-123` or
-/// `EMS2-1203`: an upper-case letter, one or more upper-case letters/digits, a
+/// empty value is always allowed. When present it must look like `PROJ-123` or
+/// `AB1-1203`: an upper-case letter, one or more upper-case letters/digits, a
 /// hyphen and a run of digits. Keys are always stored upper case, so lower-case
-/// entry (`abs-123`) is corrected rather than rejected. Pure and Flutter-free
+/// entry (`proj-123`) is corrected rather than rejected. Pure and Flutter-free
 /// so the UI is a thin caller.
 abstract final class JiraIdValidator {
   /// `PROJ-123`: upper-case prefix (letters/digits, starting with a letter)
@@ -26,5 +26,5 @@ abstract final class JiraIdValidator {
 
   /// Form-friendly validation: null when acceptable, otherwise a message.
   static String? validate(String? jiraId) =>
-      isValid(jiraId) ? null : 'Nieprawidłowy format Jira ID (np. ABS-123)';
+      isValid(jiraId) ? null : 'Nieprawidłowy format Jira ID (np. PROJ-123)';
 }

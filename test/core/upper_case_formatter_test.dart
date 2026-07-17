@@ -14,12 +14,12 @@ void main() {
       );
 
   test('upper-cases typed text and keeps the caret position', () {
-    final result = format('ems2-12');
-    expect(result.text, 'EMS2-12');
-    expect(result.selection.baseOffset, 'EMS2-12'.length);
+    final result = format('ab1-12');
+    expect(result.text, 'AB1-12');
+    expect(result.selection.baseOffset, 'AB1-12'.length);
   });
 
   test('leaves already-upper-case text unchanged', () {
-    expect(format('MM-2435').text, 'MM-2435');
+    expect(format('AB-2435').text, 'AB-2435');
   });
 }

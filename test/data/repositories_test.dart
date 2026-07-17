@@ -53,22 +53,22 @@ void main() {
         subProjects: subProjects,
         nowUtc: () => now);
 
-    test('creates workspaces, projects and Carlsberg sub-projects', () async {
+    test('creates workspaces, projects and sub-projects', () async {
       await seeder().seedIfEmpty();
 
       final ws = await workspaces.watchAll().first;
-      expect(ws.map((w) => w.name), ['Absysco', 'Prywatne']);
+      expect(ws.map((w) => w.name), ['Praca', 'Prywatne']);
 
-      final absysco = ws.first;
-      final absyscoProjects =
-          await projects.watchByWorkspace(absysco.id).first;
-      expect(absyscoProjects, hasLength(9));
-      expect(absyscoProjects.first.name, 'Danone');
+      final work = ws.first;
+      final workProjects =
+          await projects.watchByWorkspace(work.id).first;
+      expect(workProjects, hasLength(3));
+      expect(workProjects.first.name, 'Projekt1');
 
-      final carlsberg =
-          absyscoProjects.singleWhere((p) => p.name == 'Carlsberg');
-      final subs = await subProjects.watchByProject(carlsberg.id).first;
-      expect(subs.map((s) => s.name), ['TT', 'LF', 'CC', 'Dyskonty']);
+      final withSubs =
+          workProjects.singleWhere((p) => p.name == 'Projekt2');
+      final subs = await subProjects.watchByProject(withSubs.id).first;
+      expect(subs.map((s) => s.name), ['Podprojekt1', 'Podprojekt2']);
     });
 
     test('is idempotent — second run adds nothing', () async {
@@ -115,9 +115,9 @@ void main() {
 
     test('recent contexts are deduplicated, newest first', () async {
       await tasks.upsert(Task(
-          id: 'DAN-1',
+          id: 'PROJ-1',
           projectId: 'p1',
-          name: 'DAN-1',
+          name: 'PROJ-1',
           createdAt: now,
           updatedAt: now));
       Future<void> log(String id, String projectId, String? taskId,
@@ -131,14 +131,14 @@ void main() {
             end: start.add(const Duration(minutes: 30))));
       }
 
-      await log('1', 'p1', 'DAN-1', 5);
+      await log('1', 'p1', 'PROJ-1', 5);
       await log('2', 'p2', null, 3);
-      await log('3', 'p1', 'DAN-1', 1); // same context as '1'
+      await log('3', 'p1', 'PROJ-1', 1); // same context as '1'
 
       final recents = await sessions.watchRecentContexts('w1').first;
       expect(recents, hasLength(2));
       expect(recents[0].projectId, 'p1');
-      expect(recents[0].taskId, 'DAN-1');
+      expect(recents[0].taskId, 'PROJ-1');
       expect(recents[1].projectId, 'p2');
     });
 
