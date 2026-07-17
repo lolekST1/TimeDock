@@ -31,12 +31,14 @@
         android:id="@+id/widget_stop"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="8dp"
         android:text="STOP"
-        android:textColor="#1565C0"
-        android:background="#FFFFFF"
+        android:textColor="#204FB0"
+        android:textStyle="bold"
+        android:background="@drawable/widget_stop_background"
+        android:paddingHorizontal="18dp"
         android:minWidth="88dp"
-        android:minHeight="36dp"
+        android:minHeight="38dp"
         android:visibility="gone" />
 
     <TextView

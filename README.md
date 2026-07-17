@@ -21,6 +21,9 @@ Plan wdrożenia: [`PLAN.md`](PLAN.md).
 ```
 lib/
   core/       motyw M3, formatowanie czasu, ticker licznika
+              ui/  design system: TdTokens (semantyka good/warn/crit/info,
+                   karty, kanwa — jasny/ciemny), TdCard, SectionLabel,
+                   DonutGauge (pierścień KPI), MetricBar, StatTile
   domain/     encje, interfejsy repozytoriów, CZYSTA logika:
                 TimeRules            podział doby (północ, DST), sumy
                 SessionValidator     wykrywanie kolizji + auto-przycięcie

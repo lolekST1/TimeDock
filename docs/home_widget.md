@@ -28,6 +28,15 @@ których operują, są już gotowe.
    (`applyPendingStart`). Lista ostatnich kontekstów jest wypychana do natywnej
    pamięci przez `widgetSyncProvider` (`updateWidget`).
 
+## Wygląd
+
+Widget przyjmuje język wizualny aplikacji: tło to gradient marki
+(kobalt `#2D5BD0` → fiolet `#7C5CFC`, `widget_background.xml`), kafelki
+„ostatnio używane" na białym tle, a STOP to biała zaokrąglona pastylka
+(`widget_stop_background.xml`) z granatowym tekstem. Zasoby są w
+`android/app/src/main/res` i kompilują się w workflow **Build APK**
+(brak podglądu bez urządzenia).
+
 ## Znane ograniczenie
 
 Jeśli timer wystartuje z widgetu/kafla, gdy aplikacja jest całkowicie ubita,
