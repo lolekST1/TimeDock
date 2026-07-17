@@ -55,26 +55,29 @@ class ProjectTile extends ConsumerWidget {
               ),
             ),
             child: Padding(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(13),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   SizedBox(
-                    height: 18,
+                    height: 16,
                     child: project.isFavorite
-                        ? Icon(Icons.star_rounded, size: 18, color: onColor)
+                        ? Icon(Icons.star_rounded, size: 16, color: onColor)
                         : null,
                   ),
-                  Text(
-                    project.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: onColor,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 15.5,
-                      letterSpacing: -0.2,
+                  Flexible(
+                    child: Text(
+                      project.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: onColor,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
+                        height: 1.1,
+                        letterSpacing: -0.2,
+                      ),
                     ),
                   ),
                 ],

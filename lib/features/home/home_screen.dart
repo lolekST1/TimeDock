@@ -377,8 +377,8 @@ class _ProjectGrid extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       sliver: SliverGrid(
         gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: 148,
-          childAspectRatio: 1.18,
+          maxCrossAxisExtent: 150,
+          childAspectRatio: 1.05,
           crossAxisSpacing: 11,
           mainAxisSpacing: 11,
         ),
