@@ -2,6 +2,9 @@ import 'package:flutter/material.dart' hide HourFormat;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/time_format.dart';
+import '../../core/ui/section_label.dart';
+import '../../core/ui/td_card.dart';
+import '../../core/ui/td_tokens.dart';
 import '../../domain/services/csv_exporter.dart';
 import '../../domain/services/export_config.dart';
 import '../../domain/services/report_range.dart';
@@ -49,58 +52,119 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
     final range = ref.watch(reportRangeProvider);
     final period = ref.watch(reportPeriodProvider);
 
+    final td = context.td;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Eksport i kopie zapasowe')),
+      appBar: AppBar(title: const Text('Eksport i kopie')),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
         children: [
-          Text('Zakres eksportu', style: Theme.of(context).textTheme.titleMedium),
-          Text('${_periodName(period)} · ${_rangeText(range)}'),
-          const SizedBox(height: 12),
-          SwitchListTile(
-            title: const Text('Godziny dziesiętne (1.25)'),
-            subtitle: const Text('Zamiast formatu 1:15'),
-            value: _hourFormat == HourFormat.decimalHours,
-            onChanged: (v) => setState(() => _hourFormat =
-                v ? HourFormat.decimalHours : HourFormat.hoursMinutes),
+          // Range summary.
+          TdCard(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                      color: context.cs.primaryContainer,
+                      borderRadius: BorderRadius.circular(10)),
+                  child: Icon(Icons.date_range_rounded,
+                      size: 19, color: context.cs.primary),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Zakres · ${_periodName(period)}',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w700, fontSize: 14)),
+                      Text(_rangeText(range),
+                          style: TextStyle(color: td.faint, fontSize: 12.5)),
+                    ],
+                  ),
+                ),
+                if (_busy)
+                  const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2)),
+              ],
+            ),
           ),
-          SwitchListTile(
-            title: const Text('Zaokrąglaj do 15 minut w górę'),
-            subtitle: const Text('Tylko w eksporcie; baza trzyma czas rzeczywisty'),
-            value: _roundTo15,
-            onChanged: (v) => setState(() => _roundTo15 = v),
+          const SizedBox(height: 18),
+
+          const SectionLabel('Do rozliczenia'),
+          _ExportAction(
+            icon: Icons.receipt_long_rounded,
+            title: 'Eksportuj worklog (JSON)',
+            subtitle:
+                'Zakończone sesje z Jira ID do aplikacji rozliczeniowej. '
+                'Sesje bez Jira ID są pomijane i zliczane.',
+            tone: _ExportTone.primary,
+            onTap: _busy ? null : _exportWorklog,
           ),
-          const Divider(height: 32),
-          FilledButton.icon(
-            onPressed: _busy ? null : _exportPerSession,
-            icon: const Icon(Icons.table_rows_outlined),
-            label: const Text('Eksportuj sesje (CSV)'),
+          const SizedBox(height: 18),
+
+          const SectionLabel('Zestawienia (CSV)'),
+          _ExportAction(
+            icon: Icons.table_rows_rounded,
+            title: 'Sesje',
+            subtitle: 'Jedna linia = jedna sesja.',
+            onTap: _busy ? null : _exportPerSession,
           ),
-          const SizedBox(height: 8),
-          FilledButton.tonalIcon(
-            onPressed: _busy ? null : _exportAggregated,
-            icon: const Icon(Icons.summarize_outlined),
-            label: const Text('Eksportuj podsumowanie (CSV)'),
+          const SizedBox(height: 10),
+          _ExportAction(
+            icon: Icons.summarize_rounded,
+            title: 'Podsumowanie',
+            subtitle: 'Zsumowane per projekt/zadanie.',
+            onTap: _busy ? null : _exportAggregated,
           ),
-          const SizedBox(height: 8),
-          FilledButton.tonalIcon(
-            onPressed: _busy ? null : _exportWorklog,
-            icon: const Icon(Icons.receipt_long_outlined),
-            label: const Text('Eksportuj worklog (JSON)'),
+          const SizedBox(height: 18),
+
+          const SectionLabel('Format'),
+          TdCard(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Column(
+              children: [
+                SwitchListTile(
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 12),
+                  title: const Text('Godziny dziesiętne (1.25)'),
+                  subtitle: const Text('Zamiast formatu 1:15'),
+                  value: _hourFormat == HourFormat.decimalHours,
+                  onChanged: (v) => setState(() => _hourFormat =
+                      v ? HourFormat.decimalHours : HourFormat.hoursMinutes),
+                ),
+                SwitchListTile(
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 12),
+                  title: const Text('Zaokrąglaj do 15 minut w górę'),
+                  subtitle:
+                      const Text('Tylko w eksporcie; baza trzyma czas rzeczywisty'),
+                  value: _roundTo15,
+                  onChanged: (v) => setState(() => _roundTo15 = v),
+                ),
+              ],
+            ),
           ),
-          const Divider(height: 32),
-          Text('Kopia zapasowa', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: _busy ? null : _backup,
-            icon: const Icon(Icons.save_outlined),
-            label: const Text('Utwórz kopię zapasową (JSON)'),
+          const SizedBox(height: 18),
+
+          const SectionLabel('Kopia zapasowa'),
+          _ExportAction(
+            icon: Icons.save_rounded,
+            title: 'Utwórz kopię (JSON)',
+            subtitle: 'Pełny backup bazy, udostępniany z urządzenia.',
+            onTap: _busy ? null : _backup,
           ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: _busy ? null : _restoreLatest,
-            icon: const Icon(Icons.restore),
-            label: const Text('Przywróć z ostatniej kopii'),
+          const SizedBox(height: 10),
+          _ExportAction(
+            icon: Icons.restore_rounded,
+            title: 'Przywróć z ostatniej kopii',
+            subtitle: 'Wczytuje najnowszy backup z katalogu aplikacji.',
+            onTap: _busy ? null : _restoreLatest,
           ),
         ],
       ),
@@ -216,4 +280,70 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
   String _rangeText(ReportRange r) => r.firstDay == r.lastDay
       ? formatIsoDate(r.firstDay)
       : '${formatIsoDate(r.firstDay)} – ${formatIsoDate(r.lastDay)}';
+}
+
+enum _ExportTone { neutral, primary }
+
+/// A tappable export/backup action row: icon chip, title, subtitle and a
+/// trailing share affordance. The primary tone highlights the worklog export.
+class _ExportAction extends StatelessWidget {
+  const _ExportAction({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.tone = _ExportTone.neutral,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback? onTap;
+  final _ExportTone tone;
+
+  @override
+  Widget build(BuildContext context) {
+    final td = context.td;
+    final primary = tone == _ExportTone.primary;
+    final accent = context.cs.primary;
+    return TdCard(
+      padding: const EdgeInsets.all(14),
+      color: primary ? context.cs.primaryContainer : null,
+      onTap: onTap,
+      child: Opacity(
+        opacity: onTap == null ? 0.5 : 1,
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: primary ? accent : context.cs.primaryContainer,
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: Icon(icon,
+                  size: 21,
+                  color: primary ? context.cs.onPrimary : accent),
+            ),
+            const SizedBox(width: 13),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w700, fontSize: 14.5)),
+                  const SizedBox(height: 2),
+                  Text(subtitle,
+                      style: TextStyle(color: td.faint, fontSize: 12, height: 1.3)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(Icons.chevron_right_rounded, size: 20, color: td.faint),
+          ],
+        ),
+      ),
+    );
+  }
 }
